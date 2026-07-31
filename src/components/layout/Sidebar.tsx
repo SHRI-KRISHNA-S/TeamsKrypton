@@ -41,7 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
           { name: 'Announcements', path: '/announcements', icon: Megaphone },
           { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
           { name: 'Certificates', path: '/certificates', icon: Award },
-          { name: 'Profile', path: '/settings?tab=profile', icon: Users },
           { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'president':
@@ -67,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
           { name: 'Attendance', path: '/faculty/attendance', icon: Award },
           { name: 'Reports', path: '/faculty/reports', icon: BarChart3 },
           { name: 'Analytics', path: '/faculty/analytics', icon: BarChart3 },
-          { name: 'Profile', path: '/settings?tab=profile', icon: Users },
+          { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'admin':
         return [
