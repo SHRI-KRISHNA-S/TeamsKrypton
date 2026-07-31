@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { DashboardLayout } from './components/layout/DashboardLayout';
-import { LandingPage } from './pages/LandingPage';
 import { AuthPages } from './pages/AuthPages';
 import { Dashboards } from './pages/Dashboards';
 import { ClubModule } from './pages/ClubModule';
@@ -22,8 +21,9 @@ function App() {
       <Router>
         <Routes>
           {/* Public Views */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<AuthPages />} />
+          <Route path="/" element={<AuthPages />} />
+          <Route path="/auth" element={<Navigate to="/" replace />} />
+
 
           {/* Core Portal Dashboard Views wrapped in layout */}
           <Route
