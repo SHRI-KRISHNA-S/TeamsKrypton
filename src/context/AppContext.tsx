@@ -1,7 +1,93 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Definitions
-export type Role = 'student' | 'president' | 'faculty' | 'admin' | 'superadmin';
+export type Role = 'student' | 'volunteer' | 'committee' | 'event_manager' | 'president' | 'faculty' | 'admin' | 'superadmin';
+
+export interface RoleConfig {
+  accentColor: string;
+  accentClass: string;
+  bgClass: string;
+  darkBgClass: string;
+  borderClass: string;
+  glowClass: string;
+  btnClass: string;
+}
+
+export const roleConfigs: Record<Role, RoleConfig> = {
+  student: {
+    accentColor: '#4F46E5',
+    accentClass: 'text-indigo-600 dark:text-indigo-400',
+    bgClass: 'bg-indigo-50 dark:bg-indigo-950/20',
+    darkBgClass: 'dark:bg-indigo-950/20',
+    borderClass: 'border-indigo-150 dark:border-indigo-900/40',
+    glowClass: 'shadow-indigo-600/10',
+    btnClass: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
+  },
+  volunteer: {
+    accentColor: '#0D9488',
+    accentClass: 'text-teal-650 dark:text-teal-400',
+    bgClass: 'bg-teal-50 dark:bg-teal-950/20',
+    darkBgClass: 'dark:bg-teal-950/20',
+    borderClass: 'border-teal-150 dark:border-teal-900/40',
+    glowClass: 'shadow-teal-600/10',
+    btnClass: 'bg-teal-600 hover:bg-teal-700 text-white focus:ring-teal-500',
+  },
+  committee: {
+    accentColor: '#0891B2',
+    accentClass: 'text-cyan-650 dark:text-cyan-400',
+    bgClass: 'bg-cyan-50 dark:bg-cyan-950/20',
+    darkBgClass: 'dark:bg-cyan-950/20',
+    borderClass: 'border-cyan-150 dark:border-cyan-900/40',
+    glowClass: 'shadow-cyan-600/10',
+    btnClass: 'bg-cyan-600 hover:bg-cyan-700 text-white focus:ring-cyan-500',
+  },
+  event_manager: {
+    accentColor: '#EA580C',
+    accentClass: 'text-orange-650 dark:text-orange-400',
+    bgClass: 'bg-orange-50 dark:bg-orange-950/20',
+    darkBgClass: 'dark:bg-orange-950/20',
+    borderClass: 'border-orange-150 dark:border-orange-900/40',
+    glowClass: 'shadow-orange-600/10',
+    btnClass: 'bg-orange-600 hover:bg-orange-700 text-white focus:ring-orange-500',
+  },
+  president: {
+    accentColor: '#8B5CF6',
+    accentClass: 'text-purple-650 dark:text-purple-400',
+    bgClass: 'bg-purple-50 dark:bg-purple-950/20',
+    darkBgClass: 'dark:bg-purple-950/20',
+    borderClass: 'border-purple-150 dark:border-purple-900/40',
+    glowClass: 'shadow-purple-600/10',
+    btnClass: 'bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500',
+  },
+  faculty: {
+    accentColor: '#10B981',
+    accentClass: 'text-emerald-650 dark:text-emerald-450',
+    bgClass: 'bg-emerald-50 dark:bg-emerald-950/20',
+    darkBgClass: 'dark:bg-emerald-950/20',
+    borderClass: 'border-emerald-150 dark:border-emerald-900/40',
+    glowClass: 'shadow-emerald-600/10',
+    btnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500',
+  },
+  admin: {
+    accentColor: '#2563EB',
+    accentClass: 'text-blue-650 dark:text-blue-400',
+    bgClass: 'bg-blue-50 dark:bg-blue-950/20',
+    darkBgClass: 'dark:bg-blue-950/20',
+    borderClass: 'border-blue-150 dark:border-blue-900/40',
+    glowClass: 'shadow-blue-600/10',
+    btnClass: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
+  },
+  superadmin: {
+    accentColor: '#DC2626',
+    accentClass: 'text-rose-650 dark:text-rose-450',
+    bgClass: 'bg-rose-50 dark:bg-rose-950/20',
+    darkBgClass: 'dark:bg-rose-950/20',
+    borderClass: 'border-rose-150 dark:border-rose-900/40',
+    glowClass: 'shadow-rose-600/10',
+    btnClass: 'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500',
+  },
+};
+
 
 export interface Club {
   id: string;
@@ -104,6 +190,7 @@ interface AppContextType {
   toggleTheme: () => void;
   currentRole: Role;
   setCurrentRole: (role: Role) => void;
+  activeConfig: RoleConfig;
   clubs: Club[];
   joinClub: (clubId: string) => void;
   createClub: (club: Omit<Club, 'id' | 'membersCount' | 'upcomingEventsCount'>) => void;
@@ -815,6 +902,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  const activeConfig = roleConfigs[currentRole];
+
   return (
     <AppContext.Provider
       value={{
@@ -822,6 +911,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleTheme,
         currentRole,
         setCurrentRole,
+        activeConfig,
         clubs,
         joinClub,
         createClub,

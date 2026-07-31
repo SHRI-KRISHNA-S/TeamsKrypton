@@ -14,10 +14,11 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { useApp } from '../../context/AppContext';
+import { useApp, Role } from '../../context/AppContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -26,23 +27,116 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile }) => {
-  const { currentRole } = useApp();
+  const { currentRole, activeConfig } = useApp();
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Clubs', path: '/clubs', icon: Users },
-    { name: 'Events', path: '/events', icon: CalendarRange },
-    { name: 'Calendar', path: '/calendar', icon: Calendar },
-    { name: 'Announcements', path: '/announcements', icon: Megaphone },
-    { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
-    { name: 'Certificates', path: '/certificates', icon: Award },
-    { name: 'Campus Feed', path: '/activity-feed', icon: Sparkles },
-    // Show memberships only if user is Club President, Faculty, Admin, or Super Admin
-    ...(currentRole !== 'student' ? [{ name: 'Memberships', path: '/memberships', icon: UserPlus }] : []),
-    { name: 'Reports', path: '/reports', icon: BarChart3 },
-    { name: 'Settings', path: '/settings', icon: Settings },
-  ];
+  const getMenuItemsForRole = (role: Role) => {
+    switch (role) {
+      case 'student':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Explore Clubs', path: '/clubs', icon: Users },
+          { name: 'My Clubs', path: '/my-clubs', icon: Users },
+          { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Calendar', path: '/calendar', icon: Calendar },
+          { name: 'Announcements', path: '/announcements', icon: Megaphone },
+          { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
+          { name: 'Certificates', path: '/certificates', icon: Award },
+          { name: 'Campus Feed', path: '/activity-feed', icon: Sparkles },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'volunteer':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Explore Clubs', path: '/clubs', icon: Users },
+          { name: 'My Clubs', path: '/my-clubs', icon: Users },
+          { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Calendar', path: '/calendar', icon: Calendar },
+          { name: 'Announcements', path: '/announcements', icon: Megaphone },
+          { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
+          { name: 'Certificates', path: '/certificates', icon: Award },
+          { name: 'Assigned Tasks', path: '/volunteer/tasks', icon: Sparkles },
+          { name: 'Assigned Events', path: '/volunteer/events', icon: CalendarRange },
+          { name: 'Volunteer Schedule', path: '/volunteer/schedule', icon: Calendar },
+          { name: 'Attendance Scanner', path: '/volunteer/scanner', icon: ShieldCheck },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'committee':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Members', path: '/committee/members', icon: Users },
+          { name: 'Registrations', path: '/committee/registrations', icon: UserPlus },
+          { name: 'Attendance', path: '/committee/attendance', icon: Award },
+          { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Announcements', path: '/announcements', icon: Megaphone },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'event_manager':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Registrations', path: '/event-manager/registrations', icon: UserPlus },
+          { name: 'Attendance', path: '/event-manager/attendance', icon: Award },
+          { name: 'Certificates', path: '/certificates', icon: Award },
+          { name: 'Gallery', path: '/event-manager/gallery', icon: Sparkles },
+          { name: 'Analytics', path: '/event-manager/analytics', icon: BarChart3 },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'president':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Club Overview', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Members', path: '/president/members', icon: Users },
+          { name: 'Membership Requests', path: '/president/requests', icon: UserPlus },
+          { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Announcements', path: '/announcements', icon: Megaphone },
+          { name: 'Gallery', path: '/president/gallery', icon: Sparkles },
+          { name: 'Reports', path: '/president/reports', icon: BarChart3 },
+          { name: 'Analytics', path: '/president/analytics', icon: BarChart3 },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'faculty':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Assigned Clubs', path: '/faculty/clubs', icon: Users },
+          { name: 'Approvals', path: '/faculty/approvals', icon: ShieldCheck },
+          { name: 'Attendance', path: '/faculty/attendance', icon: Award },
+          { name: 'Reports', path: '/faculty/reports', icon: BarChart3 },
+          { name: 'Analytics', path: '/faculty/analytics', icon: BarChart3 },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'admin':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Users', path: '/admin/users', icon: Users },
+          { name: 'Clubs', path: '/admin/clubs', icon: Users },
+          { name: 'Departments', path: '/admin/departments', icon: BarChart3 },
+          { name: 'Faculty', path: '/admin/faculty', icon: Users },
+          { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Announcements', path: '/announcements', icon: Megaphone },
+          { name: 'Reports', path: '/admin/reports', icon: BarChart3 },
+          { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      case 'superadmin':
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Organizations', path: '/superadmin/organizations', icon: Users },
+          { name: 'Users', path: '/superadmin/users', icon: Users },
+          { name: 'Roles', path: '/superadmin/roles', icon: ShieldCheck },
+          { name: 'Permissions', path: '/superadmin/permissions', icon: ShieldCheck },
+          { name: 'Audit Logs', path: '/superadmin/audit-logs', icon: BarChart3 },
+          { name: 'System Health', path: '/superadmin/system-health', icon: Sparkles },
+          { name: 'Platform Analytics', path: '/superadmin/analytics', icon: BarChart3 },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ];
+      default:
+        return [
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        ];
+    }
+  };
 
+  const menuItems = getMenuItemsForRole(currentRole);
   const sidebarWidth = isOpen ? 'w-64' : 'w-20';
 
   if (isMobile && !isOpen) return null;
@@ -65,7 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
         {/* Logo Section */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-150/50 dark:border-slate-800/60">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white font-bold font-display shadow-md shadow-indigo-500/20">
+            <div 
+              className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-xl text-white font-bold font-display shadow-md transition-colors"
+              style={{ backgroundColor: activeConfig.accentColor }}
+            >
               CP
             </div>
             {(isOpen || isMobile) && (
@@ -90,15 +187,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
 
         {/* Navigation Links */}
         <nav className="flex-grow py-6 px-3 overflow-y-auto space-y-1.5 scrollbar-none">
-          {menuItems.map((item) => (
+          {menuItems.map((item, idx) => (
             <NavLink
-              key={item.path}
+              key={`${item.path}-${idx}`}
               to={item.path}
               onClick={() => isMobile && setIsOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 group ${
                   isActive
-                    ? 'bg-primary text-white shadow-md shadow-indigo-600/10'
+                    ? `${activeConfig.btnClass} text-white shadow-md ${activeConfig.glowClass}`
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-slate-100'
                 }`
               }
@@ -113,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
         <div className="p-3 border-t border-slate-100 dark:border-slate-800/60">
           <NavLink
             to="/"
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-all duration-200"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-450 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-all duration-200"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             {(isOpen || isMobile) && <span>Logout</span>}
@@ -123,3 +220,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
     </>
   );
 };
+

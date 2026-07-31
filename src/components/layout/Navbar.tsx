@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { useApp, Role } from '../../context/AppContext';
+import { useApp, Role, roleConfigs } from '../../context/AppContext';
+
 
 interface NavbarProps {
   sidebarOpen: boolean;
@@ -39,7 +40,9 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
     markNotificationRead,
     unreadNotificationsCount,
     globalSearch,
+    activeConfig,
   } = useApp();
+
 
   const navigate = useNavigate();
 
@@ -101,6 +104,12 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
     switch (currentRole) {
       case 'student':
         return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Computer Science Dept' };
+      case 'volunteer':
+        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Designated Volunteer' };
+      case 'committee':
+        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Committee Member' };
+      case 'event_manager':
+        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Event Manager' };
       case 'president':
         return { name: 'Alex Mercer', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80', subtitle: 'Coding Club President' };
       case 'faculty':
@@ -109,8 +118,11 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
         return { name: 'Dean of Student Affairs', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80', subtitle: 'College Administration' };
       case 'superadmin':
         return { name: 'System Root Admin', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80', subtitle: 'Super Operations' };
+      default:
+        return { name: 'Guest User', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80', subtitle: 'Guest Access' };
     }
   };
+
 
   const currentUser = getRoleUser();
 
@@ -259,10 +271,10 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
             variant="outline"
             size="sm"
             onClick={() => setRoleOpen(!roleOpen)}
-            className="flex items-center gap-2 border-indigo-200 dark:border-indigo-900/65 bg-indigo-50/20 dark:bg-indigo-950/10 text-primary py-1.5 px-3 rounded-xl hover:bg-indigo-50/50"
+            className={`flex items-center gap-2 border bg-transparent py-1.5 px-3 rounded-xl transition-all ${activeConfig.borderClass} ${activeConfig.accentClass}`}
           >
             <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-            <span className="text-xs font-bold hidden md:inline">Role: {currentRole.toUpperCase()}</span>
+            <span className="text-xs font-bold hidden md:inline">Role: {currentRole.toUpperCase().replace('_', ' ')}</span>
             <ChevronDown className="h-3 w-3 opacity-60" />
           </Button>
 
@@ -271,7 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Switch Portal Role
               </div>
-              {(['student', 'president', 'faculty', 'admin', 'superadmin'] as Role[]).map((r) => (
+              {(['student', 'volunteer', 'committee', 'event_manager', 'president', 'faculty', 'admin', 'superadmin'] as Role[]).map((r) => (
                 <button
                   key={r}
                   onClick={() => {
@@ -281,17 +293,18 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl text-left cursor-pointer transition-colors ${
                     currentRole === r
-                      ? 'bg-primary text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-slate-100'
+                      ? `${roleConfigs[r].btnClass} text-white`
+                      : 'text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
-                  <span>{r.toUpperCase()}</span>
+                  <span>{r.toUpperCase().replace('_', ' ')}</span>
                   {currentRole === r && <Check className="h-3 w-3" />}
                 </button>
               ))}
             </div>
           )}
         </div>
+
 
         {/* Theme Toggle */}
         <Button
