@@ -16,24 +16,16 @@ import { ActivityFeed } from './pages/ActivityFeed';
 import { SettingsModule } from './pages/SettingsModule';
 import {
   AccessDenied,
-  VolunteerTasks,
-  VolunteerEvents,
-  VolunteerSchedule,
-  VolunteerScanner,
-  CommitteeMembers,
-  CommitteeRegistrations,
-  CommitteeAttendance,
-  EventManagerRegistrations,
-  EventManagerAttendance,
-  EventManagerGallery,
-  EventManagerAnalytics,
   PresidentMembers,
   PresidentRequests,
   PresidentGallery,
   PresidentReports,
   PresidentAnalytics,
+  PresidentOverview,
+  PresidentAttendance,
   FacultyClubs,
   FacultyApprovals,
+  FacultyMembershipApprovals,
   FacultyAttendance,
   FacultyReports,
   FacultyAnalytics,
@@ -62,7 +54,8 @@ const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactElement
 };
 
 function App() {
-  const allRoles = ['student', 'volunteer', 'committee', 'event_manager', 'president', 'faculty', 'admin', 'superadmin'];
+  const allRoles = ['student', 'president', 'faculty', 'admin', 'superadmin'];
+
 
   return (
     <AppProvider>
@@ -81,37 +74,22 @@ function App() {
                   <Route path="/dashboard" element={<Dashboards />} />
                   
                   {/* Student / Core Links */}
-                  <Route path="/clubs" element={<ProtectedRoute allowedRoles={['student', 'volunteer', 'president', 'faculty', 'admin', 'superadmin']} element={<ClubModule />} />} />
-                  <Route path="/explore-clubs" element={<ProtectedRoute allowedRoles={['student', 'volunteer', 'president', 'faculty', 'admin', 'superadmin']} element={<ClubModule />} />} />
-                  <Route path="/my-clubs" element={<ProtectedRoute allowedRoles={['student', 'volunteer']} element={<ClubModule />} />} />
+                  <Route path="/clubs" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<ClubModule />} />} />
+                  <Route path="/explore-clubs" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<ClubModule />} />} />
+                  <Route path="/my-clubs" element={<ProtectedRoute allowedRoles={['student']} element={<ClubModule />} />} />
                   
-                  <Route path="/events" element={<ProtectedRoute allowedRoles={['student', 'volunteer', 'committee', 'event_manager', 'president', 'admin', 'superadmin']} element={<EventModule />} />} />
-                  <Route path="/calendar" element={<ProtectedRoute allowedRoles={['student', 'volunteer']} element={<CalendarModule />} />} />
-                  <Route path="/announcements" element={<ProtectedRoute allowedRoles={['student', 'volunteer', 'committee', 'president', 'admin', 'superadmin']} element={<AnnouncementModule />} />} />
-                  <Route path="/opportunities" element={<ProtectedRoute allowedRoles={['student', 'volunteer']} element={<OpportunityModule />} />} />
-                  <Route path="/certificates" element={<ProtectedRoute allowedRoles={['student', 'volunteer', 'event_manager']} element={<CertificateModule />} />} />
-                  <Route path="/activity-feed" element={<ProtectedRoute allowedRoles={['student', 'volunteer', 'president', 'faculty', 'admin', 'superadmin']} element={<ActivityFeed />} />} />
-                  
-                  {/* Volunteer specific */}
-                  <Route path="/volunteer/tasks" element={<ProtectedRoute allowedRoles={['volunteer']} element={<VolunteerTasks />} />} />
-                  <Route path="/volunteer/events" element={<ProtectedRoute allowedRoles={['volunteer']} element={<VolunteerEvents />} />} />
-                  <Route path="/volunteer/schedule" element={<ProtectedRoute allowedRoles={['volunteer']} element={<VolunteerSchedule />} />} />
-                  <Route path="/volunteer/scanner" element={<ProtectedRoute allowedRoles={['volunteer']} element={<VolunteerScanner />} />} />
-
-                  {/* Committee specific */}
-                  <Route path="/committee/members" element={<ProtectedRoute allowedRoles={['committee']} element={<CommitteeMembers />} />} />
-                  <Route path="/committee/registrations" element={<ProtectedRoute allowedRoles={['committee']} element={<CommitteeRegistrations />} />} />
-                  <Route path="/committee/attendance" element={<ProtectedRoute allowedRoles={['committee']} element={<CommitteeAttendance />} />} />
-
-                  {/* Event Manager specific */}
-                  <Route path="/event-manager/registrations" element={<ProtectedRoute allowedRoles={['event_manager']} element={<EventManagerRegistrations />} />} />
-                  <Route path="/event-manager/attendance" element={<ProtectedRoute allowedRoles={['event_manager']} element={<EventManagerAttendance />} />} />
-                  <Route path="/event-manager/gallery" element={<ProtectedRoute allowedRoles={['event_manager']} element={<EventManagerGallery />} />} />
-                  <Route path="/event-manager/analytics" element={<ProtectedRoute allowedRoles={['event_manager']} element={<EventManagerAnalytics />} />} />
+                  <Route path="/events" element={<ProtectedRoute allowedRoles={['student', 'president', 'admin', 'superadmin']} element={<EventModule />} />} />
+                  <Route path="/calendar" element={<ProtectedRoute allowedRoles={['student']} element={<CalendarModule />} />} />
+                  <Route path="/announcements" element={<ProtectedRoute allowedRoles={['student', 'president', 'admin', 'superadmin']} element={<AnnouncementModule />} />} />
+                  <Route path="/opportunities" element={<ProtectedRoute allowedRoles={['student']} element={<OpportunityModule />} />} />
+                  <Route path="/certificates" element={<ProtectedRoute allowedRoles={['student']} element={<CertificateModule />} />} />
+                  <Route path="/activity-feed" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<ActivityFeed />} />} />
 
                   {/* Club President specific */}
+                  <Route path="/president/overview" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentOverview />} />} />
                   <Route path="/president/requests" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentRequests />} />} />
                   <Route path="/president/members" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentMembers />} />} />
+                  <Route path="/president/attendance" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentAttendance />} />} />
                   <Route path="/president/gallery" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentGallery />} />} />
                   <Route path="/president/reports" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentReports />} />} />
                   <Route path="/president/analytics" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentAnalytics />} />} />
@@ -119,6 +97,7 @@ function App() {
                   {/* Faculty Coordinator specific */}
                   <Route path="/faculty/clubs" element={<ProtectedRoute allowedRoles={['faculty']} element={<FacultyClubs />} />} />
                   <Route path="/faculty/approvals" element={<ProtectedRoute allowedRoles={['faculty']} element={<FacultyApprovals />} />} />
+                  <Route path="/faculty/membership-approvals" element={<ProtectedRoute allowedRoles={['faculty']} element={<FacultyMembershipApprovals />} />} />
                   <Route path="/faculty/attendance" element={<ProtectedRoute allowedRoles={['faculty']} element={<FacultyAttendance />} />} />
                   <Route path="/faculty/reports" element={<ProtectedRoute allowedRoles={['faculty']} element={<FacultyReports />} />} />
                   <Route path="/faculty/analytics" element={<ProtectedRoute allowedRoles={['faculty']} element={<FacultyAnalytics />} />} />

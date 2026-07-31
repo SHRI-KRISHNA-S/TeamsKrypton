@@ -41,53 +41,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
           { name: 'Announcements', path: '/announcements', icon: Megaphone },
           { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
           { name: 'Certificates', path: '/certificates', icon: Award },
-          { name: 'Campus Feed', path: '/activity-feed', icon: Sparkles },
-          { name: 'Settings', path: '/settings', icon: Settings },
-        ];
-      case 'volunteer':
-        return [
-          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { name: 'Explore Clubs', path: '/clubs', icon: Users },
-          { name: 'My Clubs', path: '/my-clubs', icon: Users },
-          { name: 'Events', path: '/events', icon: CalendarRange },
-          { name: 'Calendar', path: '/calendar', icon: Calendar },
-          { name: 'Announcements', path: '/announcements', icon: Megaphone },
-          { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
-          { name: 'Certificates', path: '/certificates', icon: Award },
-          { name: 'Assigned Tasks', path: '/volunteer/tasks', icon: Sparkles },
-          { name: 'Assigned Events', path: '/volunteer/events', icon: CalendarRange },
-          { name: 'Volunteer Schedule', path: '/volunteer/schedule', icon: Calendar },
-          { name: 'Attendance Scanner', path: '/volunteer/scanner', icon: ShieldCheck },
-          { name: 'Settings', path: '/settings', icon: Settings },
-        ];
-      case 'committee':
-        return [
-          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { name: 'Members', path: '/committee/members', icon: Users },
-          { name: 'Registrations', path: '/committee/registrations', icon: UserPlus },
-          { name: 'Attendance', path: '/committee/attendance', icon: Award },
-          { name: 'Events', path: '/events', icon: CalendarRange },
-          { name: 'Announcements', path: '/announcements', icon: Megaphone },
-          { name: 'Settings', path: '/settings', icon: Settings },
-        ];
-      case 'event_manager':
-        return [
-          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { name: 'Events', path: '/events', icon: CalendarRange },
-          { name: 'Registrations', path: '/event-manager/registrations', icon: UserPlus },
-          { name: 'Attendance', path: '/event-manager/attendance', icon: Award },
-          { name: 'Certificates', path: '/certificates', icon: Award },
-          { name: 'Gallery', path: '/event-manager/gallery', icon: Sparkles },
-          { name: 'Analytics', path: '/event-manager/analytics', icon: BarChart3 },
+          { name: 'Profile', path: '/settings?tab=profile', icon: Users },
           { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'president':
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { name: 'Club Overview', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Club Overview', path: '/president/overview', icon: LayoutDashboard },
           { name: 'Members', path: '/president/members', icon: Users },
           { name: 'Membership Requests', path: '/president/requests', icon: UserPlus },
           { name: 'Events', path: '/events', icon: CalendarRange },
+          { name: 'Attendance', path: '/president/attendance', icon: Award },
           { name: 'Announcements', path: '/announcements', icon: Megaphone },
           { name: 'Gallery', path: '/president/gallery', icon: Sparkles },
           { name: 'Reports', path: '/president/reports', icon: BarChart3 },
@@ -98,11 +62,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { name: 'Assigned Clubs', path: '/faculty/clubs', icon: Users },
-          { name: 'Approvals', path: '/faculty/approvals', icon: ShieldCheck },
+          { name: 'Event Approvals', path: '/faculty/approvals', icon: ShieldCheck },
+          { name: 'Membership Approvals', path: '/faculty/membership-approvals', icon: UserPlus },
           { name: 'Attendance', path: '/faculty/attendance', icon: Award },
           { name: 'Reports', path: '/faculty/reports', icon: BarChart3 },
           { name: 'Analytics', path: '/faculty/analytics', icon: BarChart3 },
-          { name: 'Settings', path: '/settings', icon: Settings },
+          { name: 'Profile', path: '/settings?tab=profile', icon: Users },
         ];
       case 'admin':
         return [
@@ -127,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
           { name: 'Audit Logs', path: '/superadmin/audit-logs', icon: BarChart3 },
           { name: 'System Health', path: '/superadmin/system-health', icon: Sparkles },
           { name: 'Platform Analytics', path: '/superadmin/analytics', icon: BarChart3 },
-          { name: 'Settings', path: '/settings', icon: Settings },
+          { name: 'Global Settings', path: '/settings', icon: Settings },
         ];
       default:
         return [

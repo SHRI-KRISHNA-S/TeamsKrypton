@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Definitions
-export type Role = 'student' | 'volunteer' | 'committee' | 'event_manager' | 'president' | 'faculty' | 'admin' | 'superadmin';
+export type Role = 'student' | 'president' | 'faculty' | 'admin' | 'superadmin';
 
 export interface RoleConfig {
   accentColor: string;
@@ -16,39 +16,12 @@ export interface RoleConfig {
 export const roleConfigs: Record<Role, RoleConfig> = {
   student: {
     accentColor: '#4F46E5',
-    accentClass: 'text-indigo-600 dark:text-indigo-400',
+    accentClass: 'text-indigo-650 dark:text-indigo-400',
     bgClass: 'bg-indigo-50 dark:bg-indigo-950/20',
     darkBgClass: 'dark:bg-indigo-950/20',
     borderClass: 'border-indigo-150 dark:border-indigo-900/40',
     glowClass: 'shadow-indigo-600/10',
     btnClass: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
-  },
-  volunteer: {
-    accentColor: '#0D9488',
-    accentClass: 'text-teal-650 dark:text-teal-400',
-    bgClass: 'bg-teal-50 dark:bg-teal-950/20',
-    darkBgClass: 'dark:bg-teal-950/20',
-    borderClass: 'border-teal-150 dark:border-teal-900/40',
-    glowClass: 'shadow-teal-600/10',
-    btnClass: 'bg-teal-600 hover:bg-teal-700 text-white focus:ring-teal-500',
-  },
-  committee: {
-    accentColor: '#0891B2',
-    accentClass: 'text-cyan-650 dark:text-cyan-400',
-    bgClass: 'bg-cyan-50 dark:bg-cyan-950/20',
-    darkBgClass: 'dark:bg-cyan-950/20',
-    borderClass: 'border-cyan-150 dark:border-cyan-900/40',
-    glowClass: 'shadow-cyan-600/10',
-    btnClass: 'bg-cyan-600 hover:bg-cyan-700 text-white focus:ring-cyan-500',
-  },
-  event_manager: {
-    accentColor: '#EA580C',
-    accentClass: 'text-orange-650 dark:text-orange-400',
-    bgClass: 'bg-orange-50 dark:bg-orange-950/20',
-    darkBgClass: 'dark:bg-orange-950/20',
-    borderClass: 'border-orange-150 dark:border-orange-900/40',
-    glowClass: 'shadow-orange-600/10',
-    btnClass: 'bg-orange-600 hover:bg-orange-700 text-white focus:ring-orange-500',
   },
   president: {
     accentColor: '#8B5CF6',
@@ -87,6 +60,7 @@ export const roleConfigs: Record<Role, RoleConfig> = {
     btnClass: 'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500',
   },
 };
+
 
 
 export interface Club {

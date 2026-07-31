@@ -1009,3 +1009,81 @@ export const SuperAdminAnalytics: React.FC = () => {
     </div>
   );
 };
+
+// ========================================================
+// 8. ADDITIONAL TARGETED PAGES FOR CORE 5 ROLES
+// ========================================================
+export const PresidentOverview: React.FC = () => {
+  return (
+    <div className="space-y-6 animate-slide-up">
+      <div>
+        <h1 className="text-lg md:text-xl font-bold font-display text-slate-900 dark:text-white">Club Overview</h1>
+        <p className="text-xs text-slate-400 mt-1">Detailed operational state of your assigned student body.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card hoverable={false}>
+          <CardHeader><h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Coding Club Summary</h3></CardHeader>
+          <CardBody className="space-y-3.5 text-xs">
+            <div className="flex justify-between">
+              <span className="font-semibold text-slate-400">Academic advisor:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">Dr. Sarah Jenkins</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold text-slate-400">Total Registered Members:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">142 Students</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold text-slate-400">Active Events Count:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">1 Proposed, 1 Approved</span>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export const PresidentAttendance: React.FC = () => {
+  return (
+    <div className="space-y-6 animate-slide-up">
+      <div>
+        <h1 className="text-lg md:text-xl font-bold font-display text-slate-900 dark:text-white">Club Attendance Log</h1>
+        <p className="text-xs text-slate-400 mt-1">Review check-in conversion sheets for events organized by your club.</p>
+      </div>
+      <Card hoverable={false}>
+        <CardBody className="p-0">
+          <Table 
+            columns={[
+              { header: 'Student Profile', accessor: 'name' },
+              { header: 'Registered Event', accessor: 'event' },
+              { header: 'Check-in Status', accessor: (row) => <Badge variant="secondary">{row.status}</Badge> }
+            ]}
+            data={[
+              { name: 'Amit Sharma', event: 'HackTech 2026 Keynote', status: 'Checked In' },
+              { name: 'Jane Doe', event: 'HackTech 2026 Keynote', status: 'Checked In' },
+              { name: 'Mark Smith', event: 'Figma Design Workshop', status: 'Checked In' }
+            ]}
+            keyExtractor={(row) => row.name}
+          />
+        </CardBody>
+      </Card>
+    </div>
+  );
+};
+
+export const FacultyMembershipApprovals: React.FC = () => {
+  return (
+    <div className="space-y-6 animate-slide-up">
+      <div>
+        <h1 className="text-lg md:text-xl font-bold font-display text-slate-900 dark:text-white">Membership Approvals</h1>
+        <p className="text-xs text-slate-400 mt-1">Review membership applications submitted for clubs under your supervision.</p>
+      </div>
+      <Card hoverable={false}>
+        <CardBody className="py-12 text-center text-xs text-slate-400">
+          All applications currently aligned. Refer to the dashboard panel for instant approvals.
+        </CardBody>
+      </Card>
+    </div>
+  );
+};
+

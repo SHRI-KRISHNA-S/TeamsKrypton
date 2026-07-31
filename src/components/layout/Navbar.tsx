@@ -104,12 +104,6 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
     switch (currentRole) {
       case 'student':
         return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Computer Science Dept' };
-      case 'volunteer':
-        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Designated Volunteer' };
-      case 'committee':
-        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Committee Member' };
-      case 'event_manager':
-        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Event Manager' };
       case 'president':
         return { name: 'Alex Mercer', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80', subtitle: 'Coding Club President' };
       case 'faculty':
@@ -122,6 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
         return { name: 'Guest User', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80', subtitle: 'Guest Access' };
     }
   };
+
 
 
   const currentUser = getRoleUser();
@@ -283,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Switch Portal Role
               </div>
-              {(['student', 'volunteer', 'committee', 'event_manager', 'president', 'faculty', 'admin', 'superadmin'] as Role[]).map((r) => (
+              {(['student', 'president', 'faculty', 'admin', 'superadmin'] as Role[]).map((r) => (
                 <button
                   key={r}
                   onClick={() => {

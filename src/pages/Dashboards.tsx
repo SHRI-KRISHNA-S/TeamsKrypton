@@ -30,9 +30,6 @@ import { useApp, ClubEvent, MembershipRequest, Role } from '../context/AppContex
 const getBannerGradient = (role: Role) => {
   switch (role) {
     case 'student': return 'from-indigo-500 via-indigo-600 to-indigo-700 shadow-indigo-600/10';
-    case 'volunteer': return 'from-teal-500 via-teal-600 to-teal-700 shadow-teal-650/10';
-    case 'committee': return 'from-cyan-500 via-cyan-600 to-cyan-700 shadow-cyan-650/10';
-    case 'event_manager': return 'from-orange-500 via-orange-600 to-orange-700 shadow-orange-650/10';
     case 'president': return 'from-purple-500 via-purple-650 to-purple-750 shadow-purple-600/10';
     case 'faculty': return 'from-emerald-500 via-emerald-600 to-emerald-700 shadow-emerald-650/10';
     case 'admin': return 'from-blue-500 via-blue-600 to-blue-700 shadow-blue-650/10';
@@ -40,6 +37,7 @@ const getBannerGradient = (role: Role) => {
     default: return 'from-indigo-500 via-indigo-600 to-indigo-700 shadow-indigo-600/10';
   }
 };
+
 
 export const Dashboards: React.FC = () => {
 
@@ -76,9 +74,6 @@ export const Dashboards: React.FC = () => {
   const getUserName = () => {
     switch (currentRole) {
       case 'student': return 'Amit Sharma';
-      case 'volunteer': return 'Amit Sharma';
-      case 'committee': return 'Amit Sharma';
-      case 'event_manager': return 'Amit Sharma';
       case 'president': return 'Alex Mercer';
       case 'faculty': return 'Dr. Sarah Jenkins';
       case 'admin': return 'Dean of Student Affairs';
@@ -86,6 +81,7 @@ export const Dashboards: React.FC = () => {
       default: return 'User';
     }
   };
+
 
 
   const handleCreateEventSubmit = (e: React.FormEvent) => {
@@ -164,31 +160,6 @@ export const Dashboards: React.FC = () => {
         />
       )}
 
-      {currentRole === 'volunteer' && (
-        <VolunteerDashboard 
-          clubsCount={clubs.filter(c => c.isJoined).length}
-          registeredEvents={events.filter(e => e.isRegistered)}
-          certificates={certificates}
-          announcements={announcements}
-          opportunities={opportunities}
-          navigate={navigate}
-        />
-      )}
-
-      {currentRole === 'committee' && (
-        <CommitteeDashboard 
-          navigate={navigate}
-        />
-      )}
-
-      {currentRole === 'event_manager' && (
-        <EventManagerDashboard 
-          events={events}
-          setShowEventModal={setShowEventModal}
-          navigate={navigate}
-        />
-      )}
-
       {currentRole === 'president' && (
         <PresidentDashboard 
           requests={membershipRequests.filter(r => r.status === 'Pending')}
@@ -225,6 +196,7 @@ export const Dashboards: React.FC = () => {
           totalClubs={clubs.length}
         />
       )}
+
 
 
       {/* Propose Event Modal (President) */}
@@ -967,286 +939,4 @@ const SuperAdminDashboard: React.FC<SuperDashProps> = ({ totalStudents, totalClu
   );
 };
 
-// ==========================================
-// 6. VOLUNTEER DASHBOARD SUB-PAGE
-// ==========================================
-interface VolunteerDashProps {
-  clubsCount: number;
-  registeredEvents: ClubEvent[];
-  certificates: any[];
-  announcements: any[];
-  opportunities: any[];
-  navigate: any;
-}
-const VolunteerDashboard: React.FC<VolunteerDashProps> = ({
-  clubsCount,
-  registeredEvents,
-  certificates,
-  announcements,
-  opportunities,
-  navigate
-}) => {
-  const [tasks, setTasks] = useState([
-    { id: '1', name: 'Swag Box unpacking & cataloging', deadline: 'Today, 04:00 PM', done: false },
-    { id: '2', name: 'Mounting banners at seminar hall entrance', deadline: 'Today, 06:00 PM', done: true },
-    { id: '3', name: 'Safety screening gates setup support', deadline: 'Tomorrow, 08:00 AM', done: false },
-  ]);
-
-  const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
-  };
-
-  const stats = [
-    { label: 'Assigned Tasks', value: `${tasks.filter(t => t.done).length}/${tasks.length}`, icon: Award, color: 'text-teal-500 bg-teal-50 dark:bg-teal-950/20' },
-    { label: 'Volunteer Schedule', value: '2 Shifts', icon: Calendar, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' },
-    { label: 'Joined Clubs', value: clubsCount, icon: Users, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/20' },
-    { label: 'Registered Events', value: registeredEvents.length, icon: Calendar, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/20' },
-  ];
-
-  return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <Card key={i} hoverable={true}>
-            <CardBody className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${stat.color}`}>
-                <stat.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{stat.value}</div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{stat.label}</div>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Side: Tasks */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card hoverable={false}>
-            <CardHeader className="flex justify-between items-center">
-              <h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Active Volunteer Tasks</h3>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/volunteer/tasks')} className="text-xs">Manage Tasks</Button>
-            </CardHeader>
-            <CardBody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {tasks.map(t => (
-                <div key={t.id} className="flex justify-between items-center py-3.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="checkbox" 
-                      checked={t.done} 
-                      onChange={() => toggleTask(t.id)}
-                      className="h-4.5 w-4.5 rounded border-slate-150 text-teal-650 focus:ring-teal-500 cursor-pointer"
-                    />
-                    <div>
-                      <h4 className={`text-xs font-bold ${t.done ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>{t.name}</h4>
-                      <p className="text-[10px] text-slate-450 font-semibold">{t.deadline}</p>
-                    </div>
-                  </div>
-                  <Badge variant={t.done ? 'secondary' : 'neutral'}>{t.done ? 'Completed' : 'Pending'}</Badge>
-                </div>
-              ))}
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* Right Side: Quick Actions & Scanner */}
-        <div className="space-y-6">
-          <Card hoverable={false}>
-            <CardHeader><h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Quick Actions</h3></CardHeader>
-            <CardBody className="space-y-3">
-              <Button variant="primary" className="w-full bg-teal-600 hover:bg-teal-700" onClick={() => navigate('/volunteer/scanner')}>
-                Open Attendance Scanner
-              </Button>
-              <Button variant="outline" className="w-full text-teal-600 border-teal-200" onClick={() => navigate('/volunteer/schedule')}>
-                View Duty Schedule
-              </Button>
-              <Button variant="outline" className="w-full text-teal-600 border-teal-200" onClick={() => navigate('/certificates')}>
-                Download Certificate
-              </Button>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// 7. COMMITTEE DASHBOARD SUB-PAGE
-// ==========================================
-interface CommitteeDashProps {
-  navigate: any;
-}
-const CommitteeDashboard: React.FC<CommitteeDashProps> = ({ navigate }) => {
-  const [registrations, setRegistrations] = useState([
-    { id: '1', name: 'Jane Doe', event: 'HackTech 2026', checked: false },
-    { id: '2', name: 'Mark Smith', event: 'HackTech 2026', checked: true },
-    { id: '3', name: 'Alice Johnson', event: 'RoboWars Championship', checked: false },
-  ]);
-
-  const verifyTicket = (id: string) => {
-    setRegistrations(prev => prev.map(r => r.id === id ? { ...r, checked: true } : r));
-    alert('Simulated Verification: Student registration credentials approved.');
-  };
-
-  const stats = [
-    { label: "Today's Registrations", value: registrations.length, icon: UserPlus, color: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-950/20' },
-    { label: 'Pending Verifications', value: registrations.filter(r => !r.checked).length, icon: Clock, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/20' },
-    { label: 'Attendance Checked', value: registrations.filter(r => r.checked).length, icon: Award, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' },
-    { label: 'Assigned Events', value: '2 Events', icon: Calendar, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/20' },
-  ];
-
-  return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <Card key={i} hoverable={true}>
-            <CardBody className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${stat.color}`}>
-                <stat.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{stat.value}</div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{stat.label}</div>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Side: Registrations pending */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card hoverable={false}>
-            <CardHeader className="flex justify-between items-center">
-              <h3 className="text-sm font-bold font-display text-slate-900 dark:text-white font-sans">Pending Registrations</h3>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/committee/registrations')} className="text-xs">Browse All</Button>
-            </CardHeader>
-            <CardBody className="p-0">
-              <Table 
-                columns={[
-                  { header: 'Student Name', accessor: 'name' },
-                  { header: 'Event Requested', accessor: 'event' },
-                  { header: 'Status', accessor: (row) => <Badge variant={row.checked ? 'secondary' : 'accent'}>{row.checked ? 'Verified' : 'Pending'}</Badge> },
-                  { 
-                    header: 'Control', 
-                    accessor: (row) => !row.checked && (
-                      <Button variant="secondary" size="sm" onClick={() => verifyTicket(row.id)}>
-                        Verify
-                      </Button>
-                    )
-                  }
-                ]}
-                data={registrations}
-                keyExtractor={(row) => row.id}
-              />
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* Right Side: Quick Actions */}
-        <div className="space-y-6">
-          <Card hoverable={false}>
-            <CardHeader><h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Quick Actions</h3></CardHeader>
-            <CardBody className="space-y-3">
-              <Button variant="primary" className="w-full bg-cyan-600 hover:bg-cyan-700" onClick={() => navigate('/committee/attendance')}>
-                Scan Attendance
-              </Button>
-              <Button variant="outline" className="w-full text-cyan-600 border-cyan-200" onClick={() => navigate('/committee/members')}>
-                Inspect Member Registry
-              </Button>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// 8. EVENT MANAGER DASHBOARD SUB-PAGE
-// ==========================================
-interface EventManagerDashProps {
-  events: ClubEvent[];
-  setShowEventModal: (show: boolean) => void;
-  navigate: any;
-}
-const EventManagerDashboard: React.FC<EventManagerDashProps> = ({ events, setShowEventModal, navigate }) => {
-  const stats = [
-    { label: 'Upcoming Events', value: events.length, icon: Calendar, color: 'text-orange-500 bg-orange-50 dark:bg-orange-950/20' },
-    { label: 'Venue Status', value: '4 Booked', icon: Award, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/20' },
-    { label: 'Allocated Volunteers', value: '18 Active', icon: Users, color: 'text-teal-500 bg-teal-50 dark:bg-teal-950/20' },
-    { label: 'Check-in Conversion', value: '92%', icon: Activity, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/20' },
-  ];
-
-  return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <Card key={i} hoverable={true}>
-            <CardBody className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${stat.color}`}>
-                <stat.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{stat.value}</div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{stat.label}</div>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Side: Upcoming Events */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card hoverable={false}>
-            <CardHeader className="flex justify-between items-center">
-              <h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Active Events Roster</h3>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/events')} className="text-xs">Browse All</Button>
-            </CardHeader>
-            <CardBody className="p-0">
-              <Table 
-                columns={[
-                  { header: 'Event Title', accessor: 'title' },
-                  { header: 'Proposed Date', accessor: 'date' },
-                  { header: 'Proposed Venue', accessor: 'venue' },
-                  { header: 'Roster Capacity', accessor: (row) => `${row.registrationCount} Signups` }
-                ]}
-                data={events}
-                keyExtractor={(row) => row.id}
-              />
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* Right Side: Quick Actions */}
-        <div className="space-y-6">
-          <Card hoverable={false}>
-            <CardHeader><h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Quick Actions</h3></CardHeader>
-            <CardBody className="space-y-3">
-              <Button variant="primary" className="w-full bg-orange-600 hover:bg-orange-700" onClick={() => setShowEventModal(true)}>
-                Create Event
-              </Button>
-              <Button variant="outline" className="w-full text-orange-650 border-orange-200" onClick={() => navigate('/event-manager/registrations')}>
-                Manage Registrations
-              </Button>
-              <Button variant="outline" className="w-full text-orange-650 border-orange-200" onClick={() => navigate('/event-manager/gallery')}>
-                Upload Gallery Highlights
-              </Button>
-              <Button variant="outline" className="w-full text-orange-650 border-orange-200" onClick={() => navigate('/event-manager/analytics')}>
-                Event Performance Report
-              </Button>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
 
