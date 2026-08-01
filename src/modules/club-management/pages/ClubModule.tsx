@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Grid, 
   List, 
@@ -18,6 +19,8 @@ import { Card, CardHeader, CardBody, CardFooter, Button, Badge, useApp, Club } f
 
 export const ClubModule: React.FC = () => {
   const { clubs, joinClub, events, announcements } = useApp();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   
   // States
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -31,12 +34,15 @@ export const ClubModule: React.FC = () => {
   const categories = ['All', 'Technical', 'Engineering', 'Arts & Humanities', 'Business', 'Creative Arts'];
 
   // Filter clubs
+  const isMyClubs = pathname === '/my-clubs';
+
   const filteredClubs = clubs.filter(club => {
     const matchesSearch = 
       club.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       club.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' ? true : club.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesJoined = isMyClubs ? club.isJoined : true;
+    return matchesSearch && matchesCategory && matchesJoined;
   });
 
   // Get active selected club
@@ -196,8 +202,14 @@ export const ClubModule: React.FC = () => {
       {/* Header controls */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-lg md:text-xl font-bold font-display text-slate-900 dark:text-white">Discover Campus Clubs</h1>
-          <p className="text-xs text-slate-400 mt-1">Discover, read, and join diverse technical and cultural organizations.</p>
+          <h1 className="text-lg md:text-xl font-bold font-display text-slate-900 dark:text-white">
+            {isMyClubs ? 'My Clubs' : 'Discover Campus Clubs'}
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            {isMyClubs 
+              ? 'View and manage the campus organizations you have joined.' 
+              : 'Discover, read, and join diverse technical and cultural organizations.'}
+          </p>
         </div>
         <div className="flex gap-2.5">
           <Button variant="outline" className={`p-2.5 !rounded-xl ${viewMode === 'grid' ? 'bg-indigo-50 border-primary text-primary dark:bg-indigo-950/20' : 'text-slate-500'}`} onClick={() => setViewMode('grid')}>
@@ -239,7 +251,33 @@ export const ClubModule: React.FC = () => {
       </div>
 
       {/* Clubs rendering grid/list */}
-      {viewMode === 'grid' ? (
+      {filteredClubs.length === 0 ? (
+        <Card className="p-8 text-center border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0E1322]/40 rounded-2xl">
+          <CardBody className="flex flex-col items-center justify-center space-y-4 py-8">
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl text-slate-400 dark:text-slate-500">
+              <Users className="h-8 w-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">No Clubs Found</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                {isMyClubs 
+                  ? "You haven't joined any clubs yet. Go to Explore Clubs to join some!"
+                  : "We couldn't find any clubs matching your criteria. Try adjusting your filters or search terms."}
+              </p>
+            </div>
+            {isMyClubs && (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                className="mt-2"
+                onClick={() => navigate('/clubs')}
+              >
+                Explore Clubs
+              </Button>
+            )}
+          </CardBody>
+        </Card>
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClubs.map(club => (
             <Card key={club.id} hoverable={true} className="flex flex-col h-full">

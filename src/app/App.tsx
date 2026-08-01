@@ -18,6 +18,8 @@ import { ReportsModule, PresidentReports, FacultyReports, AdminReports } from '.
 import { ActivityFeed } from '../modules/student-portfolio';
 import { SettingsModule, AdminUsers, AdminFaculty, AdminDepartments, SuperAdminUsers, SuperAdminRoles, SuperAdminPermissions, SuperAdminOrganizations, SuperAdminAuditLogs } from '../modules/user-management';
 import { PresidentAttendance, FacultyAttendance } from '../modules/attendance';
+import { CampusFeed, UserProfile, PostDetails, ClubFeed, CreatePost, MyPosts } from '../modules/campus-connect';
+import { CampusLeaderboard } from '../modules/campus-leaderboard';
 
 function App() {
   const allRoles = ['student', 'president', 'faculty', 'admin', 'superadmin'];
@@ -50,6 +52,18 @@ function App() {
                   <Route path="/opportunities" element={<ProtectedRoute allowedRoles={['student']} element={<OpportunityModule />} />} />
                   <Route path="/certificates" element={<ProtectedRoute allowedRoles={['student']} element={<CertificateModule />} />} />
                   <Route path="/activity-feed" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<ActivityFeed />} />} />
+
+                  {/* Campus Connect Links */}
+                  <Route path="/campus-connect" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<CampusFeed />} />} />
+                  <Route path="/campus-connect/profile/:userId" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<UserProfile />} />} />
+                  <Route path="/campus-connect/post/:postId" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<PostDetails />} />} />
+                  <Route path="/campus-connect/club/:clubId" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<ClubFeed />} />} />
+                  <Route path="/campus-connect/create" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<CreatePost />} />} />
+                  <Route path="/campus-connect/my-posts" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<MyPosts />} />} />
+
+                  {/* Campus Leaderboard Links */}
+                  <Route path="/campus-leaderboard" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<CampusLeaderboard />} />} />
+                  <Route path="/profile/:userId" element={<ProtectedRoute allowedRoles={['student', 'president', 'faculty', 'admin', 'superadmin']} element={<UserProfile />} />} />
 
                   {/* Club President specific */}
                   <Route path="/president/overview" element={<ProtectedRoute allowedRoles={['president']} element={<PresidentOverview />} />} />

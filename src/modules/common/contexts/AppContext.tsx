@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { INITIAL_POINTS_RULES } from '../../campus-leaderboard/config/pointsConfig';
 
 // Definitions
 export type Role = 'student' | 'president' | 'faculty' | 'admin' | 'superadmin';
@@ -159,6 +160,57 @@ export interface NotificationItem {
   read: boolean;
 }
 
+export interface CampusConnectComment {
+  id: string;
+  userId: string;
+  author: string;
+  avatar: string;
+  role: string;
+  department: string;
+  content: string;
+  timestamp: string;
+}
+
+export interface CampusConnectPost {
+  id: string;
+  userId: string;
+  author: string;
+  avatar: string;
+  department: string;
+  clubBadge?: string;
+  roleBadge: string;
+  timestamp: string;
+  content: string;
+  image?: string;
+  eventTag?: string;
+  clubTag?: string;
+  likes: number;
+  hasLiked?: boolean;
+  isSaved?: boolean;
+  isPinned?: boolean;
+  isAnnouncement?: boolean;
+  comments: CampusConnectComment[];
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  department: string;
+  academicYear: string;
+  club: string;
+  role: string;
+  skills: string[];
+  bio: string;
+  joinedClubs: string[];
+  upcomingEvents: string[];
+  certificates: string[];
+  achievements: string[];
+  isSuspended?: boolean;
+  apPoints: number;
+  recentAchievement?: string;
+}
+
 interface AppContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
@@ -189,6 +241,21 @@ interface AppContextType {
   markNotificationRead: (id: string) => void;
   unreadNotificationsCount: number;
   globalSearch: (query: string) => { clubs: Club[]; events: ClubEvent[]; announcements: Announcement[]; certificates: Certificate[] };
+  campusPosts: CampusConnectPost[];
+  userProfiles: UserProfile[];
+  likeCampusPost: (postId: string) => void;
+  saveCampusPost: (postId: string) => void;
+  addCampusComment: (postId: string, commentText: string) => void;
+  createCampusPost: (postData: { content: string; image?: string; eventTag?: string; clubTag?: string; isAnnouncement?: boolean }) => void;
+  pinCampusPost: (postId: string) => void;
+  deleteCampusPost: (postId: string) => void;
+  suspendUser: (userId: string) => void;
+  
+  // Leaderboard additions
+  updateApPoints: (userId: string, points: number) => void;
+  resetLeaderboard: () => void;
+  pointRules: { key: string; label: string; points: number }[];
+  updatePointRules: (rules: { key: string; label: string; points: number }[]) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -220,6 +287,271 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Current User Role
   const [currentRole, setCurrentRole] = useState<Role>('student');
+
+  // Campus Connect profiles state
+  const [pointRules, setPointRules] = useState<{ key: string; label: string; points: number }[]>(INITIAL_POINTS_RULES);
+
+  const [userProfiles, setUserProfiles] = useState<UserProfile[]>([
+    {
+      id: 'user-student',
+      name: 'Amit Sharma',
+      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      academicYear: 'Year II',
+      club: 'Coding Club & Debate Society',
+      role: 'Student Member',
+      skills: ['React', 'TypeScript', 'UI/UX', 'Python', 'TailwindCSS'],
+      bio: 'Passionate developer and UI designer. Love participating in hackathons and building smart campus tools. Currently designing the new Campus Connect module!',
+      joinedClubs: ['Coding Club', 'Debate & Literary Society'],
+      upcomingEvents: ['HackTech 2026: 36-Hour Hackathon'],
+      certificates: ['HackTech 2025: 1st Runners-up', 'AI/ML Bootcamp Completion'],
+      achievements: ["Winner of Freshman Coding Contest", "Dean's List 2025"],
+      isSuspended: false,
+      apPoints: 350,
+      recentAchievement: 'HackTech 2025 Runner-up'
+    },
+    {
+      id: 'user-president',
+      name: 'Alex Mercer',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      academicYear: 'Year IV',
+      club: 'Coding Club',
+      role: 'Club President',
+      skills: ['Node.js', 'AWS', 'System Design', 'Rust', 'Project Management'],
+      bio: 'President of the Coding Club. Building systems and mentoring juniors. Reach out if you want to collaborate on engineering projects!',
+      joinedClubs: ['Coding Club'],
+      upcomingEvents: ['HackTech 2026: 36-Hour Hackathon'],
+      certificates: ['AWS Certified Cloud Practitioner'],
+      achievements: ['Best Student Leader Award 2025', '1st Place in Smart Campus Hackathon'],
+      isSuspended: false,
+      apPoints: 650,
+      recentAchievement: 'HackTech 2025 Winner'
+    },
+    {
+      id: 'user-faculty',
+      name: 'Dr. Sarah Jenkins',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      academicYear: 'Professor & HOD',
+      club: 'Coding Club (Coordinator)',
+      role: 'Faculty Coordinator',
+      skills: ['Academic Research', 'Machine Learning', 'Java', 'Curriculum Design'],
+      bio: 'Professor and Head of Computer Science Department. Coordinating technical student activities and hackathons on campus.',
+      joinedClubs: ['Coding Club (Coordinator)', 'Robotics Association (Advisor)'],
+      upcomingEvents: ['HackTech 2026 Keynote'],
+      certificates: ['Senior IEEE Member', 'Outstanding Faculty Award'],
+      achievements: ['Published 20+ papers in peer-reviewed journals', 'Supervised 10+ student startup pitches'],
+      isSuspended: false,
+      apPoints: 0,
+      recentAchievement: 'Faculty Sponsor'
+    },
+    {
+      id: 'user-nisha',
+      name: 'Nisha Patel',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80',
+      department: 'Mechanical Engineering',
+      academicYear: 'Year III',
+      club: 'Robotics Association',
+      role: 'Robotics Lead Builder',
+      skills: ['CAD', 'SolidWorks', 'Arduino', 'ROS', 'Metal Fabrication'],
+      bio: 'Robotics enthusiast. Building autonomous combat robots. Currently preparing for RoboWars 2026!',
+      joinedClubs: ['Robotics Association'],
+      upcomingEvents: ['RoboWars Championship 2026'],
+      certificates: ['Certified SolidWorks Associate'],
+      achievements: ['1st Place in Inter-College Robotics Challenge'],
+      isSuspended: false,
+      apPoints: 280,
+      recentAchievement: 'RoboWars 2025 Participant'
+    },
+    {
+      id: 'user-elena',
+      name: 'Elena Rostova',
+      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&q=80',
+      department: 'Fine Arts',
+      academicYear: 'Year III',
+      club: 'Creative Photography Guild',
+      role: 'Guild President',
+      skills: ['Lightroom', 'Photoshop', 'Portraiture', 'Cinematography'],
+      bio: 'President of the Creative Photography Guild. Capturing emotions, light, and stories through the lens.',
+      joinedClubs: ['Creative Photography Guild'],
+      upcomingEvents: ['Monthly Photowalk'],
+      certificates: ['National Geography Youth Photo Contest Winner'],
+      achievements: ['Exhibited at city art gallery'],
+      isSuspended: false,
+      apPoints: 420,
+      recentAchievement: 'National Geographic Photo Winner'
+    },
+    {
+      id: 'user-leaderboard-1',
+      name: 'John Doe',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&q=80',
+      department: 'Mechanical Engineering',
+      academicYear: 'Year IV',
+      club: 'Robotics Association',
+      role: 'Lead Architect',
+      skills: ['CAD', 'Robotics', 'Python', 'Leadership'],
+      bio: 'Passionate about engineering, heavy combat robots, and building mechanical structures.',
+      joinedClubs: ['Robotics Association'],
+      upcomingEvents: ['RoboWars Championship 2026'],
+      certificates: ['Advanced CAD Specialist'],
+      achievements: ['Gold Medalist in RoboWars 2026', 'Best Design Award'],
+      isSuspended: false,
+      apPoints: 1650,
+      recentAchievement: 'RoboWars 2026 Gold Medalist'
+    },
+    {
+      id: 'user-leaderboard-2',
+      name: 'Jane Smith',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      academicYear: 'Year III',
+      club: 'Coding Club',
+      role: 'Competitive Coder',
+      skills: ['C++', 'Algorithms', 'Data Structures'],
+      bio: 'Focused on solving complex algorithmic problems and training for ICPC contests.',
+      joinedClubs: ['Coding Club'],
+      upcomingEvents: ['HackTech 2026: 36-Hour Hackathon'],
+      certificates: ['ICPC regional participant'],
+      achievements: ['1st Place in ACM ICPC Regionals'],
+      isSuspended: false,
+      apPoints: 980,
+      recentAchievement: '1st Place in ACM ICPC Regionals'
+    },
+    {
+      id: 'user-leaderboard-3',
+      name: 'David Miller',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&q=80',
+      department: 'Fine Arts',
+      academicYear: 'Year I',
+      club: 'Creative Photography Guild',
+      role: 'Student Member',
+      skills: ['Photography', 'Editing'],
+      bio: 'First year Fine Arts student. Love taking street photos and participating in photowalks.',
+      joinedClubs: ['Creative Photography Guild'],
+      upcomingEvents: ['Monthly Photowalk'],
+      certificates: ['Intro to Digital Photography'],
+      achievements: ['Art Exhibition Participant'],
+      isSuspended: false,
+      apPoints: 180,
+      recentAchievement: 'Exhibition Selection'
+    },
+    {
+      id: 'user-leaderboard-4',
+      name: 'Emily Watson',
+      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&q=80',
+      department: 'Business Administration',
+      academicYear: 'Year II',
+      club: 'Business & Entrepreneurship Club',
+      role: 'Event Coordinator',
+      skills: ['Marketing', 'Public Relations'],
+      bio: 'Active member of the business club. Helping organize startup pitch nights and networking events.',
+      joinedClubs: ['Business & Entrepreneurship Club'],
+      upcomingEvents: ['Startup Pitch & Funding Night'],
+      certificates: ['Intro to Venture Capital'],
+      achievements: ['Participant in Startup Pitch 2025'],
+      isSuspended: false,
+      apPoints: 120,
+      recentAchievement: 'Symposium Volunteer'
+    }
+  ]);
+
+  // Campus Connect posts state
+  const [campusPosts, setCampusPosts] = useState<CampusConnectPost[]>([
+    {
+      id: 'cc-post-1',
+      userId: 'user-student',
+      author: 'Amit Sharma',
+      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      clubBadge: 'Coding Club',
+      roleBadge: 'Student',
+      timestamp: '2 hours ago',
+      content: "🚀 I'm attending the HackTech 2026 Hackathon tomorrow. Looking for 2 teammates to form a team! I specialize in frontend design and React/TypeScript. Drop a comment if you'd like to collaborate!",
+      eventTag: 'HackTech 2026: 36-Hour Hackathon',
+      clubTag: 'Coding Club',
+      likes: 12,
+      hasLiked: false,
+      isSaved: false,
+      isPinned: false,
+      comments: [
+        {
+          id: 'cc-comment-1',
+          userId: 'user-nisha',
+          author: 'Nisha Patel',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80',
+          role: 'Student',
+          department: 'Mechanical Eng',
+          content: 'Hey Amit! I am interested. I can work on Python backend and hardware APIs. Let\'s sync up!',
+          timestamp: '1 hour ago'
+        }
+      ]
+    },
+    {
+      id: 'cc-post-2',
+      userId: 'user-president',
+      author: 'Alex Mercer',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      clubBadge: 'Coding Club',
+      roleBadge: 'President',
+      timestamp: '4 hours ago',
+      content: "📢 Pinned Announcement: The HackTech 2026 Hackathon begins tomorrow at 9:00 AM! Please make sure your project repositories are created, and you have checked in at the registration desk. Good luck everyone!",
+      clubTag: 'Coding Club',
+      likes: 34,
+      hasLiked: true,
+      isSaved: false,
+      isPinned: true,
+      isAnnouncement: true,
+      comments: []
+    },
+    {
+      id: 'cc-post-3',
+      userId: 'user-nisha',
+      author: 'Nisha Patel',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80',
+      department: 'Mechanical Engineering',
+      clubBadge: 'Robotics Association',
+      roleBadge: 'Student',
+      timestamp: '1 day ago',
+      content: '🤖 Is anyone interested in joining the Robotics Workshop next week? We will be building autonomous maze-solving micro-mice. No prior hardware experience needed!',
+      clubTag: 'Robotics Association',
+      likes: 18,
+      hasLiked: false,
+      isSaved: true,
+      isPinned: false,
+      comments: []
+    },
+    {
+      id: 'cc-post-4',
+      userId: 'user-faculty',
+      author: 'Dr. Sarah Jenkins',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&q=80',
+      department: 'Computer Science & Eng',
+      clubBadge: 'Coding Club',
+      roleBadge: 'Faculty',
+      timestamp: '2 days ago',
+      content: '⚠️ We need student volunteers for managing the food courts and wifi desk for tomorrow\'s hackathon. Please register via the Volunteer Scanner app or coordinate directly with Coding Club leads.',
+      eventTag: 'HackTech 2026: 36-Hour Hackathon',
+      clubTag: 'Coding Club',
+      likes: 25,
+      hasLiked: false,
+      isSaved: false,
+      isPinned: false,
+      comments: [
+        {
+          id: 'cc-comment-2',
+          userId: 'user-student',
+          author: 'Amit Sharma',
+          avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop&q=80',
+          role: 'Student',
+          department: 'Computer Science & Eng',
+          content: 'I have already signed up as lead volunteer for the wifi check, Dr. Sarah!',
+          timestamp: '1 day ago'
+        }
+      ]
+    }
+  ]);
 
   // Mock Clubs State
   const [clubs, setClubs] = useState<Club[]>([
@@ -864,6 +1196,151 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
   };
 
+  const likeCampusPost = (postId: string) => {
+    setCampusPosts(prev =>
+      prev.map(post => {
+        if (post.id === postId) {
+          const hasLiked = !post.hasLiked;
+          return { ...post, hasLiked, likes: post.likes + (hasLiked ? 1 : -1) };
+        }
+        return post;
+      })
+    );
+  };
+
+  const saveCampusPost = (postId: string) => {
+    setCampusPosts(prev =>
+      prev.map(post => (post.id === postId ? { ...post, isSaved: !post.isSaved } : post))
+    );
+  };
+
+  const addCampusComment = (postId: string, commentText: string) => {
+    if (!commentText.trim()) return;
+    
+    // Find active user profile
+    const currentUserId = currentRole === 'student' ? 'user-student' : currentRole === 'president' ? 'user-president' : 'user-faculty';
+    const profile = userProfiles.find(p => p.id === currentUserId);
+    
+    setCampusPosts(prev =>
+      prev.map(post => {
+        if (post.id === postId) {
+          const newComment = {
+            id: `cc-comment-${Date.now()}`,
+            userId: currentUserId,
+            author: profile ? profile.name : 'User',
+            avatar: profile ? profile.avatar : '',
+            role: currentRole.charAt(0).toUpperCase() + currentRole.slice(1),
+            department: profile ? profile.department : '',
+            content: commentText,
+            timestamp: 'Just now'
+          };
+          return { ...post, comments: [...post.comments, newComment] };
+        }
+        return post;
+      })
+    );
+  };
+
+  const createCampusPost = (postData: { content: string; image?: string; eventTag?: string; clubTag?: string; isAnnouncement?: boolean }) => {
+    const currentUserId = currentRole === 'student' ? 'user-student' : currentRole === 'president' ? 'user-president' : 'user-faculty';
+    const profile = userProfiles.find(p => p.id === currentUserId);
+
+    const newPost: CampusConnectPost = {
+      id: `cc-post-${Date.now()}`,
+      userId: currentUserId,
+      author: profile ? profile.name : 'Unknown User',
+      avatar: profile ? profile.avatar : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&q=80',
+      department: profile ? profile.department : 'Campus',
+      clubBadge: postData.clubTag,
+      roleBadge: currentRole.charAt(0).toUpperCase() + currentRole.slice(1),
+      timestamp: 'Just now',
+      content: postData.content,
+      image: postData.image,
+      eventTag: postData.eventTag,
+      clubTag: postData.clubTag,
+      likes: 0,
+      hasLiked: false,
+      isSaved: false,
+      isPinned: false,
+      isAnnouncement: postData.isAnnouncement || false,
+      comments: []
+    };
+
+    setCampusPosts(prev => [newPost, ...prev]);
+
+    // Track as activity post if needed
+    const newActivity: ActivityPost = {
+      id: `activity-${Date.now()}`,
+      author: newPost.author,
+      role: newPost.roleBadge + (newPost.clubBadge ? ` (${newPost.clubBadge})` : ''),
+      avatar: newPost.avatar,
+      content: newPost.content,
+      image: newPost.image,
+      likes: 0,
+      hasLiked: false,
+      comments: [],
+      date: 'Just now'
+    };
+    setActivityFeed(prev => [newActivity, ...prev]);
+  };
+
+  const pinCampusPost = (postId: string) => {
+    setCampusPosts(prev =>
+      prev.map(post => (post.id === postId ? { ...post, isPinned: !post.isPinned } : post))
+    );
+  };
+
+  const deleteCampusPost = (postId: string) => {
+    setCampusPosts(prev => prev.filter(post => post.id !== postId));
+  };
+
+  const suspendUser = (userId: string) => {
+    setUserProfiles(prev =>
+      prev.map(profile => {
+        if (profile.id === userId) {
+          const isSuspended = !profile.isSuspended;
+          // Add notification
+          const newNotif: NotificationItem = {
+            id: `notif-${Date.now()}`,
+            type: 'membership',
+            title: isSuspended ? 'User Suspended' : 'User Reinstated',
+            message: `User ${profile.name} was ${isSuspended ? 'suspended' : 'reinstated'} from the platform.`,
+            date: 'Just now',
+            read: false,
+          };
+          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+          return { ...profile, isSuspended };
+        }
+        return profile;
+      })
+    );
+  };
+
+  const updateApPoints = (userId: string, points: number) => {
+    setUserProfiles(prev =>
+      prev.map(profile => {
+        if (profile.id === userId) {
+          const newPoints = Math.max(0, profile.apPoints + points);
+          return { ...profile, apPoints: newPoints };
+        }
+        return profile;
+      })
+    );
+  };
+
+  const resetLeaderboard = () => {
+    setUserProfiles(prev =>
+      prev.map(profile => {
+        if (profile.role === 'Faculty Coordinator') return profile;
+        return { ...profile, apPoints: 0, recentAchievement: 'None' };
+      })
+    );
+  };
+
+  const updatePointRules = (rules: { key: string; label: string; points: number }[]) => {
+    setPointRules(rules);
+  };
+
   const globalSearch = (query: string) => {
     const lowerQuery = query.toLowerCase();
     if (!lowerQuery.trim()) return { clubs: [], events: [], announcements: [], certificates: [] };
@@ -910,6 +1387,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markNotificationRead,
         unreadNotificationsCount,
         globalSearch,
+        campusPosts,
+        userProfiles,
+        likeCampusPost,
+        saveCampusPost,
+        addCampusComment,
+        createCampusPost,
+        pinCampusPost,
+        deleteCampusPost,
+        suspendUser,
+        updateApPoints,
+        resetLeaderboard,
+        pointRules,
+        updatePointRules,
       }}
     >
       {children}
