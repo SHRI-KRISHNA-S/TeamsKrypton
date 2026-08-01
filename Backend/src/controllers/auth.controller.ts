@@ -88,21 +88,76 @@ export const login = async (
       throw new UnauthorizedError('Invalid credentials');
     }
 
-    // Generate Access & Refresh tokens
+    // Generate Access token
     const accessToken = generateAccessToken({ id: user.id, email: user.email, role: user.role });
-    const refreshTokenString = generateRefreshToken(user.id);
 
-    // Save refresh token to DB
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshTokenString,
+    // Handle concurrent duplicate logins gracefully (e.g. React StrictMode double rendering)
+    const recentToken = await prisma.refreshToken.findFirst({
+      where: {
         userId: user.id,
-        expiresAt,
+        revoked: false,
+        createdAt: {
+          gte: new Date(Date.now() - 5000), // created in the last 5 seconds
+        },
       },
+      orderBy: { createdAt: 'desc' },
     });
+
+    let refreshTokenString: string;
+    let expiresAt: Date;
+
+    if (recentToken) {
+      refreshTokenString = recentToken.token;
+      expiresAt = recentToken.expiresAt;
+      logger.info(`Reusing recently generated refresh token for user ${user.id} due to concurrent requests`);
+    } else {
+      // Keep up to 4 previous active sessions, revoke any older ones to support multiple browser sessions
+      const activeTokens = await prisma.refreshToken.findMany({
+        where: { userId: user.id, revoked: false },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (activeTokens.length >= 4) {
+        const tokensToRevoke = activeTokens.slice(4);
+        await prisma.refreshToken.updateMany({
+          where: { id: { in: tokensToRevoke.map(t => t.id) } },
+          data: { revoked: true },
+        });
+        logger.info(`Revoked ${tokensToRevoke.length} old refresh tokens for user ${user.id} to maintain safety limits`);
+      }
+
+      refreshTokenString = generateRefreshToken(user.id);
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+      try {
+        await prisma.refreshToken.create({
+          data: {
+            token: refreshTokenString,
+            userId: user.id,
+            expiresAt,
+          },
+        });
+        logger.info(`Successfully created new refresh token for user ${user.id}`);
+      } catch (dbError: any) {
+        // Safe fallback in case of database transaction race conditions
+        if (dbError.code === 'P2002') {
+          const duplicateToken = await prisma.refreshToken.findFirst({
+            where: { userId: user.id, revoked: false },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (duplicateToken) {
+            refreshTokenString = duplicateToken.token;
+            expiresAt = duplicateToken.expiresAt;
+            logger.warn(`Recovered from database unique constraint race condition for user ${user.id}`);
+          } else {
+            throw dbError;
+          }
+        } else {
+          throw dbError;
+        }
+      }
+    }
 
     // Set HTTP-only Cookie for Refresh Token
     res.cookie('refreshToken', refreshTokenString, {
@@ -167,19 +222,38 @@ export const refresh = async (
       email: storedToken.user.email, 
       role: storedToken.user.role 
     });
-    const newRefreshTokenString = generateRefreshToken(storedToken.user.id);
+    let newRefreshTokenString = generateRefreshToken(storedToken.user.id);
 
     // Save new Refresh token
-    const expiresAt = new Date();
+    let expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await prisma.refreshToken.create({
-      data: {
-        token: newRefreshTokenString,
-        userId: storedToken.user.id,
-        expiresAt,
-      },
-    });
+    try {
+      await prisma.refreshToken.create({
+        data: {
+          token: newRefreshTokenString,
+          userId: storedToken.user.id,
+          expiresAt,
+        },
+      });
+      logger.info(`Successfully created rotated refresh token for user ${storedToken.user.id}`);
+    } catch (dbError: any) {
+      if (dbError.code === 'P2002') {
+        const duplicateToken = await prisma.refreshToken.findFirst({
+          where: { userId: storedToken.user.id, revoked: false },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (duplicateToken) {
+          newRefreshTokenString = duplicateToken.token;
+          expiresAt = duplicateToken.expiresAt;
+          logger.warn(`Recovered from refresh unique constraint race condition for user ${storedToken.user.id}`);
+        } else {
+          throw dbError;
+        }
+      } else {
+        throw dbError;
+      }
+    }
 
     // Set cookie
     res.cookie('refreshToken', newRefreshTokenString, {
