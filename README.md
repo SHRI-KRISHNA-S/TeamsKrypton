@@ -268,7 +268,12 @@ For testing different permission scopes in the system, use these credentials (al
 
 ## 🤝 Contributors
 
-* **SHRI-KRISHNA-S** — Lead Full-Stack Integration Developer
+| Member | Primary Responsibility |
+|---------|------------------------|
+| **SAKTHI M** |Team Lead • Frontend Development • UI/UX • Dashboard Implementation |
+| **SHRI KRISHNA S** | Backend Architecture • Database Design • System Integration |
+| **SANTHOSH K M** | Backend Development • REST APIs • Authentication & Security |
+| **MOUNIKA SRI M** | Frontend Development • Testing • Documentation • UI Integration |
 
 ---
 
