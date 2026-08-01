@@ -15,20 +15,50 @@ enum Role {
   SUPER_ADMIN
 }
 
+enum MembershipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ClubRole {
+  MEMBER
+  OFFICER
+  PRESIDENT
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  CANCELLED
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
 model User {
-  id                   String         @id @default(uuid())
-  email                String         @unique
+  id                   String              @id @default(uuid())
+  email                String              @unique
   password             String
   name                 String
   department           String
-  role                 Role           @default(STUDENT)
-  isVerified           Boolean        @default(false)
+  role                 Role                @default(STUDENT)
+  isVerified           Boolean             @default(false)
   verificationToken    String?
   passwordResetToken   String?
   passwordResetExpires DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  skills               String[]            @default([])
+  bio                  String?
+  avatar               String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   refreshTokens        RefreshToken[]
+  memberships          Membership[]
+  registrations        EventRegistration[]
+  attendanceRecords    Attendance[]
+  feedbacks            Feedback[]
+  uploadedMedia        GalleryItem[]
 
   @@map("users")
 }
@@ -43,4 +73,110 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@map("refresh_tokens")
+}
+
+model Club {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  description String
+  category    String
+  logo        String?
+  banner      String?
+  isApproved  Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  memberships Membership[]
+  events      Event[]
+  gallery     GalleryItem[]
+
+  @@map("clubs")
+}
+
+model Membership {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clubId    String
+  club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  status    MembershipStatus @default(PENDING)
+  role      ClubRole         @default(MEMBER)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, clubId])
+  @@map("memberships")
+}
+
+model Event {
+  id            String              @id @default(uuid())
+  title         String
+  description   String
+  date          DateTime
+  venue         String
+  capacity      Int
+  isApproved    Boolean             @default(false)
+  clubId        String
+  club          Club                @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  registrations EventRegistration[]
+  attendance    Attendance[]
+  feedback      Feedback[]
+  gallery       GalleryItem[]
+
+  @@map("events")
+}
+
+model EventRegistration {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status    RegistrationStatus @default(REGISTERED)
+  attended  Boolean            @default(false)
+  createdAt DateTime           @default(now())
+
+  @@unique([userId, eventId])
+  @@map("event_registrations")
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  method    AttendanceMethod
+  markedBy  String
+  timestamp DateTime         @default(now())
+
+  @@map("attendance_records")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rating    Int
+  comments  String?
+  createdAt DateTime @default(now())
+
+  @@map("feedbacks")
+}
+
+model GalleryItem {
+  id        String   @id @default(uuid())
+  url       String
+  clubId    String?
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("gallery_items")
 }
