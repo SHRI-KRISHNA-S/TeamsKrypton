@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAccessToken(null);
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear();
+      window.location.href = '/';
     };
 
     window.addEventListener('auth-logout', handleLogoutEvent);
@@ -75,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAccessToken(null);
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear(); // Clear all cached user queries
+      window.location.href = '/';
     },
   });
 
