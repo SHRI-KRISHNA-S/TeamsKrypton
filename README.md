@@ -157,6 +157,7 @@ erDiagram
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | **POST** | `/api/v1/auth/login` | Authenticate user and issue tokens | No |
+| **GET** | `/api/v1/auth/me` | Retrieve current authenticated user profile | Yes (Bearer) |
 | **POST** | `/api/v1/auth/refresh` | Rotate and issue fresh access tokens | No (Cookie) |
 | **GET** | `/api/v1/clubs` | Discover approved campus clubs | Yes |
 | **POST** | `/api/v1/clubs` | Request creation of a new club | Yes (President/Admin) |

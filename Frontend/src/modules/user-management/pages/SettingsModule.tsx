@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
 import { User, Lock, Bell, Eye, Shield, Save, CheckCircle } from 'lucide-react';
 import { Card, CardHeader, CardBody, Button, Badge, useApp } from '../../common';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 type SettingsTab = 'profile' | 'security' | 'notifications' | 'appearance';
 
 export const SettingsModule: React.FC = () => {
-  const { currentRole, theme, toggleTheme } = useApp();
+  const { theme, toggleTheme } = useApp();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Form states
-  const [name, setName] = useState(
-    currentRole === 'student' ? 'Amit Sharma' : currentRole === 'president' ? 'Alex Mercer' : 'Dr. Sarah Jenkins'
-  );
+  const [name, setName] = useState(user ? user.name : '');
   const [bio, setBio] = useState('Passionate about student activities and collaborative software development.');
+
+  const currentRole = user ? user.role : 'student';
+
+  const avatar = currentRole === 'student'
+    ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80'
+    : currentRole === 'president'
+    ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80'
+    : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&q=80';
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +107,7 @@ export const SettingsModule: React.FC = () => {
                   {/* Avatar upload simulator */}
                   <div className="flex items-center gap-5">
                     <img 
-                      src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80" 
+                      src={avatar} 
                       alt="Avatar" 
                       className="h-16 w-16 rounded-2xl object-cover ring-2 ring-slate-100 dark:ring-slate-850" 
                     />
@@ -125,7 +133,7 @@ export const SettingsModule: React.FC = () => {
                       <input 
                         type="email" 
                         disabled
-                        value="yourname@college.edu"
+                        value={user ? user.email : 'yourname@college.edu'}
                         className="w-full text-xs p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-slate-400 cursor-not-allowed outline-none"
                       />
                     </div>

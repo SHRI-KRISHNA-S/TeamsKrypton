@@ -1,25 +1,25 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../auth/hooks/useAuth';
-import { AccessDenied } from '../components/AccessDenied';
+import { useAuth } from '../hooks/useAuth';
+import { AccessDenied } from '../../common/components/AccessDenied';
 
 interface ProtectedRouteProps {
   element: React.ReactElement;
-  allowedRoles: string[];
+  allowedRoles?: string[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element, allowedRoles }) => {
   const { isAuthenticated, loading, role } = useAuth();
 
   if (loading) {
-    return null;
+    return null; // Prevent brief dashboard flashes during session restoring
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  if (role && !allowedRoles.includes(role)) {
+  if (allowedRoles && role && !allowedRoles.includes(role)) {
     return <AccessDenied />;
   }
 

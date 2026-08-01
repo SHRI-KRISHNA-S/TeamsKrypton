@@ -21,6 +21,7 @@ import {
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { useApp, Role, roleConfigs } from '../contexts/AppContext';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 
 interface NavbarProps {
@@ -34,7 +35,6 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
     theme,
     toggleTheme,
     currentRole,
-    setCurrentRole,
     notifications,
     markAllNotificationsRead,
     markNotificationRead,
@@ -42,6 +42,8 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
     globalSearch,
     activeConfig,
   } = useApp();
+
+  const { logout, user } = useAuth();
 
 
   const navigate = useNavigate();
@@ -101,20 +103,41 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
 
   // Get active user details
   const getRoleUser = () => {
-    switch (currentRole) {
-      case 'student':
-        return { name: 'Amit Sharma', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80', subtitle: 'Computer Science Dept' };
-      case 'president':
-        return { name: 'Alex Mercer', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80', subtitle: 'Coding Club President' };
-      case 'faculty':
-        return { name: 'Dr. Sarah Jenkins', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&q=80', subtitle: 'Faculty Coordinator' };
-      case 'admin':
-        return { name: 'Dean of Student Affairs', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80', subtitle: 'College Administration' };
-      case 'superadmin':
-        return { name: 'System Root Admin', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80', subtitle: 'Super Operations' };
-      default:
-        return { name: 'Guest User', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80', subtitle: 'Guest Access' };
+    if (user) {
+      let subtitle = '';
+      switch (currentRole) {
+        case 'student':
+          subtitle = user.department ? `${user.department} Student` : 'Student Member';
+          break;
+        case 'president':
+          subtitle = 'Coding Club President';
+          break;
+        case 'faculty':
+          subtitle = 'Faculty Coordinator';
+          break;
+        case 'admin':
+          subtitle = 'College Administration';
+          break;
+        case 'superadmin':
+          subtitle = 'Super Operations';
+          break;
+        default:
+          subtitle = 'Member';
+      }
+      
+      const avatar = currentRole === 'student'
+        ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&q=80'
+        : currentRole === 'president'
+        ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&q=80';
+
+      return {
+        name: user.name,
+        avatar,
+        subtitle,
+      };
     }
+    return { name: 'Guest User', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&q=80', subtitle: 'Guest Access' };
   };
 
 
@@ -260,44 +283,14 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
       {/* Action Buttons Section */}
       <div className="flex items-center gap-2 md:gap-3.5">
         
-        {/* Role Switcher Widget (For Graders/Evaluators) */}
-        <div ref={roleRef} className="relative">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setRoleOpen(!roleOpen)}
-            className={`flex items-center gap-2 border bg-transparent py-1.5 px-3 rounded-xl transition-all ${activeConfig.borderClass} ${activeConfig.accentClass}`}
+        {/* Role Indicator Widget (Static) */}
+        <div className="relative">
+          <div
+            className={`flex items-center gap-2 border bg-transparent py-1.5 px-3 rounded-xl select-none ${activeConfig.borderClass} ${activeConfig.accentClass}`}
           >
             <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-            <span className="text-xs font-bold hidden md:inline">Role: {currentRole.toUpperCase().replace('_', ' ')}</span>
-            <ChevronDown className="h-3 w-3 opacity-60" />
-          </Button>
-
-          {roleOpen && (
-            <div className="absolute right-0 mt-2.5 w-48 bg-white dark:bg-[#0E1322] border border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-xl p-2 z-50 animate-fade-in">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                Switch Portal Role
-              </div>
-              {(['student', 'president', 'faculty', 'admin', 'superadmin'] as Role[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => {
-                    setCurrentRole(r);
-                    setRoleOpen(false);
-                    navigate('/dashboard');
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl text-left cursor-pointer transition-colors ${
-                    currentRole === r
-                      ? `${roleConfigs[r].btnClass} text-white`
-                      : 'text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                >
-                  <span>{r.toUpperCase().replace('_', ' ')}</span>
-                  {currentRole === r && <Check className="h-3 w-3" />}
-                </button>
-              ))}
-            </div>
-          )}
+            <span className="text-xs font-bold">{currentRole.toUpperCase().replace('_', ' ')}</span>
+          </div>
         </div>
 
 
@@ -466,7 +459,11 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isM
                 <span>Account Settings</span>
               </button>
               <button 
-                onClick={() => { setProfileOpen(false); navigate('/'); }}
+                onClick={async () => {
+                  setProfileOpen(false);
+                  await logout();
+                  navigate('/');
+                }}
                 className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl cursor-pointer border-t border-slate-50 dark:border-slate-800/50 mt-1 pt-2.5"
               >
                 <LogOut className="h-4 w-4" />

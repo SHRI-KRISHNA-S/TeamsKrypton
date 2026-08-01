@@ -6,7 +6,9 @@ import { AppProvider, DashboardLayout } from '../modules/common';
 import { ProtectedRoute } from '../modules/common/guards/ProtectedRoute';
 
 // Feature module imports
-import { AuthPages } from '../modules/authentication';
+import { AuthPages } from '../modules/auth';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from '../modules/auth';
 import { Dashboards, PresidentAnalytics, FacultyAnalytics, AdminAnalytics, SuperAdminSystemHealth, SuperAdminAnalytics as SuperAdminAnalyticsView } from '../modules/analytics';
 import { ClubModule, PresidentMembers, PresidentOverview, FacultyClubs, FacultyApprovals, AdminClubs, PresidentGallery } from '../modules/club-management';
 import { EventModule, CalendarModule } from '../modules/event-management';
@@ -21,17 +23,25 @@ import { PresidentAttendance, FacultyAttendance } from '../modules/attendance';
 import { CampusFeed, UserProfile, PostDetails, ClubFeed, CreatePost, MyPosts } from '../modules/campus-connect';
 import { CampusLeaderboard } from '../modules/campus-leaderboard';
 
+const queryClient = new QueryClient();
+
+const PublicRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : element;
+};
+
 function App() {
   const allRoles = ['student', 'president', 'faculty', 'admin', 'superadmin'];
 
-
   return (
-    <AppProvider>
-      <Router>
-        <Routes>
-          {/* Public Views */}
-          <Route path="/" element={<AuthPages />} />
-          <Route path="/auth" element={<Navigate to="/" replace />} />
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppProvider>
+          <Router>
+            <Routes>
+              {/* Public Views */}
+              <Route path="/" element={<PublicRoute element={<AuthPages />} />} />
+              <Route path="/auth" element={<Navigate to="/" replace />} />
 
           {/* Core Portal Dashboard Views wrapped in layout */}
           <Route
@@ -113,8 +123,10 @@ function App() {
             }
           />
         </Routes>
-      </Router>
-    </AppProvider>
+          </Router>
+        </AppProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { useApp, Role } from '../contexts/AppContext';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile }) => {
   const { currentRole, activeConfig } = useApp();
+  const { logout } = useAuth();
 
   const getMenuItemsForRole = (role: Role) => {
     switch (role) {
@@ -183,13 +185,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isMobile })
 
         {/* Footer Logout */}
         <div className="p-3 border-t border-slate-100 dark:border-slate-800/60">
-          <NavLink
-            to="/"
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-450 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-all duration-200"
+          <button
+            onClick={async () => {
+              await logout();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-450 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-all duration-200 cursor-pointer text-left"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             {(isOpen || isMobile) && <span>Logout</span>}
-          </NavLink>
+          </button>
         </div>
       </aside>
     </>

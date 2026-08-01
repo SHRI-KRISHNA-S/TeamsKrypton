@@ -45,6 +45,28 @@ async function runTest() {
     return;
   }
 
+  // 1.5. GET ME (PROFILE VERIFICATION)
+  try {
+    console.log('1.5. Initiating GET /auth/me with Bearer token...');
+    const res = await fetch(`${BASE_URL}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    console.log('Response Status:', res.status);
+    const body = await res.json() as any;
+    if (res.status !== 200) {
+      console.error('❌ GET /auth/me failed:', body);
+      return;
+    }
+    console.log('✅ GET /auth/me Succeeded! Profile details:', body.data.user);
+    console.log('');
+  } catch (err: any) {
+    console.error('❌ GET /auth/me error:', err.message);
+    return;
+  }
+
   // 2. REFRESH 1
   try {
     console.log('2. Initiating REFRESH 1...');

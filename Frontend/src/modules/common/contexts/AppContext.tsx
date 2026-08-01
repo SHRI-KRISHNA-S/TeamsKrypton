@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_POINTS_RULES } from '../../campus-leaderboard/config/pointsConfig';
+import { useAuth } from '../../auth/hooks/useAuth';
+import { apiClient } from '../../auth/services/api';
 
 // Definitions
 export type Role = 'student' | 'president' | 'faculty' | 'admin' | 'superadmin';
@@ -215,7 +217,6 @@ interface AppContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   currentRole: Role;
-  setCurrentRole: (role: Role) => void;
   activeConfig: RoleConfig;
   clubs: Club[];
   joinClub: (clubId: string) => void;
@@ -285,8 +286,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Current User Role
-  const [currentRole, setCurrentRole] = useState<Role>('student');
+  // Current User Role from Auth Hook
+  const { role, isAuthenticated } = useAuth();
+  const currentRole = role || 'student';
 
   // Campus Connect profiles state
   const [pointRules, setPointRules] = useState<{ key: string; label: string; points: number }[]>(INITIAL_POINTS_RULES);
@@ -934,21 +936,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
-  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('accessToken');
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    };
+  const apiCall = async (endpoint: string, options: any = {}) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/v1${endpoint}`, {
-        ...options,
-        headers,
+      const res = await apiClient({
+        url: endpoint,
+        method: options.method || 'GET',
+        data: options.body ? JSON.parse(options.body) : undefined,
+        headers: options.headers,
       });
-      const json = await res.json();
-      return json;
-    } catch (err) {
+      return res.data;
+    } catch (err: any) {
       console.error(`API Error on ${endpoint}:`, err);
       return null;
     }
@@ -1075,34 +1072,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Switch role and login automatically
+  // Automatically sync with backend when user authenticates
   useEffect(() => {
-    const autoLogin = async () => {
-      const emailMap: Record<Role, string> = {
-        student: 'student@college.edu',
-        president: 'president@college.edu',
-        faculty: 'faculty@college.edu',
-        admin: 'admin@college.edu',
-        superadmin: 'superadmin@college.edu',
-      };
-      const email = emailMap[currentRole];
-      try {
-        const res = await fetch('http://localhost:5000/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: 'password123' }),
-        });
-        const json = await res.json();
-        if (json.status === 'success' && json.data?.accessToken) {
-          localStorage.setItem('accessToken', json.data.accessToken);
-          await syncWithBackend();
-        }
-      } catch (err) {
-        console.warn('Backend server not responding. Continuing with local offline states.', err);
-      }
-    };
-    autoLogin();
-  }, [currentRole]);
+    if (isAuthenticated) {
+      syncWithBackend();
+    }
+  }, [isAuthenticated]);
 
   // Actions
   const joinClub = async (clubId: string) => {
@@ -1343,7 +1318,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         theme,
         toggleTheme,
         currentRole,
-        setCurrentRole,
         activeConfig,
         clubs,
         joinClub,

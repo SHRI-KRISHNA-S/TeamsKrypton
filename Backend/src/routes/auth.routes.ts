@@ -219,5 +219,6 @@ router.post('/reset-password', validate(resetPasswordSchema), authController.res
  *         description: Unauthorized
  */
 router.get('/profile', requireAuth, authController.getProfile);
+router.get('/me', requireAuth, authController.getProfile);
 
 export default router;

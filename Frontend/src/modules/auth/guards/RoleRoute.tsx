@@ -1,14 +1,14 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../auth/hooks/useAuth';
-import { AccessDenied } from '../components/AccessDenied';
+import { useAuth } from '../hooks/useAuth';
+import { AccessDenied } from '../../common/components/AccessDenied';
 
-interface ProtectedRouteProps {
+interface RoleRouteProps {
   element: React.ReactElement;
   allowedRoles: string[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element, allowedRoles }) => {
+export const RoleRoute: React.FC<RoleRouteProps> = ({ element, allowedRoles }) => {
   const { isAuthenticated, loading, role } = useAuth();
 
   if (loading) {
