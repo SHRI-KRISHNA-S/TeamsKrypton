@@ -37,28 +37,57 @@ enum AttendanceMethod {
   MANUAL
 }
 
+enum OpportunityType {
+  HACKATHON
+  COMPETITION
+  INTERNSHIP
+  RECRUITMENT
+  SCHOLARSHIP
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  EVENT_REMINDER
+  MEMBERSHIP_UPDATE
+  OPPORTUNITY_UPDATE
+}
+
 model User {
-  id                   String              @id @default(uuid())
-  email                String              @unique
-  password             String
-  name                 String
-  department           String
-  role                 Role                @default(STUDENT)
-  isVerified           Boolean             @default(false)
-  verificationToken    String?
-  passwordResetToken   String?
-  passwordResetExpires DateTime?
-  skills               String[]            @default([])
-  bio                  String?
-  avatar               String?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  refreshTokens        RefreshToken[]
-  memberships          Membership[]
-  registrations        EventRegistration[]
-  attendanceRecords    Attendance[]
-  feedbacks            Feedback[]
-  uploadedMedia        GalleryItem[]
+  id                    String                   @id @default(uuid())
+  email                 String                   @unique
+  password              String
+  name                  String
+  department            String
+  role                  Role                     @default(STUDENT)
+  isVerified            Boolean                  @default(false)
+  verificationToken     String?
+  passwordResetToken    String?
+  passwordResetExpires  DateTime?
+  skills                String[]                 @default([])
+  bio                   String?
+  avatar                String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  refreshTokens         RefreshToken[]
+  memberships           Membership[]
+  registrations         EventRegistration[]
+  attendanceRecords     Attendance[]
+  feedbacks             Feedback[]
+  uploadedMedia         GalleryItem[]
+  posts                 Post[]
+  comments              Comment[]
+  likes                 PostLike[]
+  bookmarks             Bookmark[]
+  opportunities         Opportunity[]
+  applications          OpportunityApplication[]
+  notifications         Notification[]
 
   @@map("users")
 }
@@ -88,6 +117,7 @@ model Club {
   memberships Membership[]
   events      Event[]
   gallery     GalleryItem[]
+  posts       Post[]
 
   @@map("clubs")
 }
@@ -179,4 +209,104 @@ model GalleryItem {
   createdAt DateTime @default(now())
 
   @@map("gallery_items")
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  title     String?
+  content   String
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  clubId    String?
+  club      Club?      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  comments  Comment[]
+  likes     PostLike[]
+  bookmarks Bookmark[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("bookmarks")
+}
+
+model Opportunity {
+  id           String                   @id @default(uuid())
+  title        String
+  description  String
+  type         OpportunityType
+  company      String?
+  deadline     DateTime
+  location     String?
+  requirements String?
+  link         String?
+  postedById   String
+  postedBy     User                     @relation(fields: [postedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  applications OpportunityApplication[]
+
+  @@map("opportunities")
+}
+
+model OpportunityApplication {
+  id            String            @id @default(uuid())
+  opportunityId String
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeUrl     String?
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+
+  @@unique([opportunityId, userId])
+  @@map("opportunity_applications")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
 }
