@@ -64,6 +64,28 @@ export const roleConfigs: Record<Role, RoleConfig> = {
 
 
 
+export type CommitteeRole = 
+  | 'President'
+  | 'Vice President'
+  | 'Secretary'
+  | 'Treasurer'
+  | 'Core Member'
+  | 'General Member';
+
+export interface ClubMember {
+  id: string;
+  clubId: string;
+  studentId: string;
+  name: string;
+  avatar: string;
+  email: string;
+  department: string;
+  academicYear: string;
+  role: CommitteeRole;
+  joinedDate: string;
+  status: 'Active' | 'Inactive';
+}
+
 export interface Club {
   id: string;
   name: string;
@@ -108,12 +130,57 @@ export interface ClubEvent {
 export interface MembershipRequest {
   id: string;
   studentName: string;
+  studentId?: string;
+  studentEmail?: string;
   department: string;
   year: string;
   appliedDate: string;
   clubName: string;
   clubId: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  statement?: string;
+  skills?: string;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted';
+  rejectionReason?: string;
+  processedDate?: string;
+}
+
+export interface GalleryAlbum {
+  id: string;
+  clubId: string;
+  title: string;
+  description: string;
+  coverImage: string;
+  eventId?: string;
+  createdDate: string;
+  mediaCount: number;
+}
+
+export interface GalleryMediaItem {
+  id: string;
+  albumId: string;
+  clubId: string;
+  title: string;
+  caption?: string;
+  type: 'image' | 'video';
+  url: string;
+  thumbnail?: string;
+  eventId?: string;
+  uploadedBy: string;
+  uploadedDate: string;
+  isDeleted?: boolean;
+}
+
+export interface ClubAnalyticsData {
+  clubId: string;
+  totalMembers: number;
+  activeMembers: number;
+  activePercentage: number;
+  eventCount: number;
+  totalApPoints: number;
+  attendanceRate: number;
+  certificatesIssued: number;
+  monthlyGrowth: { month: string; members: number; events: number; apPoints: number }[];
+  departmentBreakdown: { department: string; count: number; percentage: number }[];
 }
 
 export interface Opportunity {
@@ -235,13 +302,27 @@ interface AppContextType {
   changeClubStatus: (clubId: string, status: 'Active' | 'Inactive' | 'Archived') => void;
   assignFacultyCoordinator: (clubId: string, facultyName: string) => void;
   assignPresident: (clubId: string, presidentName: string) => void;
+  clubMembers: ClubMember[];
+  addClubMember: (member: Omit<ClubMember, 'id' | 'joinedDate'>) => void;
+  updateMemberRole: (memberId: string, role: CommitteeRole) => void;
+  removeClubMember: (memberId: string) => void;
+  toggleMemberStatus: (memberId: string) => void;
   events: ClubEvent[];
   registerForEvent: (eventId: string) => void;
   createEvent: (event: Omit<ClubEvent, 'id' | 'registrationCount' | 'status'>) => void;
   approveEvent: (eventId: string) => void;
   membershipRequests: MembershipRequest[];
-  handleMembership: (requestId: string, action: 'approve' | 'reject') => void;
-  submitMembershipRequest: (clubId: string, details: { studentName: string; department: string; year: string }) => void;
+  handleMembership: (requestId: string, action: 'approve' | 'reject' | 'waitlist', feedback?: string) => void;
+  submitMembershipRequest: (clubId: string, details: { studentName: string; studentId?: string; studentEmail?: string; department: string; year: string; statement?: string; skills?: string }) => void;
+  galleryAlbums: GalleryAlbum[];
+  galleryMediaItems: GalleryMediaItem[];
+  createGalleryAlbum: (album: Omit<GalleryAlbum, 'id' | 'createdDate' | 'mediaCount'>) => void;
+  updateGalleryAlbum: (albumId: string, data: Partial<GalleryAlbum>) => void;
+  deleteGalleryAlbum: (albumId: string) => void;
+  uploadGalleryMedia: (media: Omit<GalleryMediaItem, 'id' | 'uploadedDate'>) => void;
+  deleteGalleryMedia: (mediaId: string) => void;
+  restoreGalleryMedia: (mediaId: string) => void;
+  getClubStats: (clubId: string) => ClubAnalyticsData;
   opportunities: Opportunity[];
   toggleBookmarkOpportunity: (oppId: string) => void;
   applyOpportunity: (oppId: string) => void;
@@ -707,7 +788,114 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       department: 'Computer Science & Engineering',
       establishedDate: '2021-08-01',
       contactEmail: 'esports@campus.edu',
-      objectives: ['Host inter-college gaming leagues and game development jams.']
+    }
+  ]);
+
+  // Mock Club Members Roster State
+  const [clubMembers, setClubMembers] = useState<ClubMember[]>([
+    {
+      id: 'mem-1',
+      clubId: 'club-1',
+      studentId: 'STU-2022-001',
+      name: 'Alex Mercer',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&q=80',
+      email: 'alex.mercer@student.edu',
+      department: 'Computer Science & Engineering',
+      academicYear: 'Year IV',
+      role: 'President',
+      joinedDate: '2022-09-10',
+      status: 'Active'
+    },
+    {
+      id: 'mem-2',
+      clubId: 'club-1',
+      studentId: 'STU-2022-045',
+      name: 'Rohit Sen',
+      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop&q=80',
+      email: 'rohit.sen@student.edu',
+      department: 'Computer Science & Engineering',
+      academicYear: 'Year IV',
+      role: 'Vice President',
+      joinedDate: '2022-10-01',
+      status: 'Active'
+    },
+    {
+      id: 'mem-3',
+      clubId: 'club-1',
+      studentId: 'STU-2023-012',
+      name: 'Jane Doe',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&q=80',
+      email: 'jane.doe@student.edu',
+      department: 'Information Technology',
+      academicYear: 'Year III',
+      role: 'Secretary',
+      joinedDate: '2023-01-15',
+      status: 'Active'
+    },
+    {
+      id: 'mem-4',
+      clubId: 'club-1',
+      studentId: 'STU-2023-089',
+      name: 'Mark Smith',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&q=80',
+      email: 'mark.smith@student.edu',
+      department: 'Computer Science & Engineering',
+      academicYear: 'Year III',
+      role: 'Treasurer',
+      joinedDate: '2023-02-20',
+      status: 'Active'
+    },
+    {
+      id: 'mem-5',
+      clubId: 'club-1',
+      studentId: 'STU-2024-004',
+      name: 'Alice Johnson',
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&q=80',
+      email: 'alice.johnson@student.edu',
+      department: 'Data Science',
+      academicYear: 'Year II',
+      role: 'Core Member',
+      joinedDate: '2024-08-10',
+      status: 'Active'
+    },
+    {
+      id: 'mem-6',
+      clubId: 'club-1',
+      studentId: 'STU-2024-055',
+      name: 'David Kim',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&q=80',
+      email: 'david.kim@student.edu',
+      department: 'Computer Science & Engineering',
+      academicYear: 'Year II',
+      role: 'General Member',
+      joinedDate: '2024-09-01',
+      status: 'Active'
+    },
+    {
+      id: 'mem-7',
+      clubId: 'club-2',
+      studentId: 'STU-2022-019',
+      name: 'Liam Carter',
+      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&q=80',
+      email: 'liam.carter@student.edu',
+      department: 'Mechanical Engineering',
+      academicYear: 'Year IV',
+      role: 'President',
+      joinedDate: '2022-08-14',
+      status: 'Active'
+    },
+    {
+      id: 'mem-8',
+      clubId: 'club-3',
+      studentId: 'STU-2023-040',
+      name: 'Clara Hughes',
+      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&q=80',
+      email: 'clara.hughes@student.edu',
+      department: 'Humanities & Social Sciences',
+      academicYear: 'Year III',
+      role: 'President',
+      joinedDate: '2023-09-05',
+      status: 'Active'
     }
   ]);
 
@@ -803,33 +991,156 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: 'req-1',
       studentName: 'Amit Sharma',
-      department: 'Computer Science & Eng',
+      studentId: 'STU-2024-102',
+      studentEmail: 'amit.sharma@student.edu',
+      department: 'Computer Science & Engineering',
       year: 'Year II',
       appliedDate: '2026-07-28',
       clubName: 'Coding Club',
       clubId: 'club-1',
-      status: 'Pending',
+      statement: 'Passionate about full-stack web development and open source. Looking forward to joining hackathon teams.',
+      skills: 'React, Node.js, Python',
+      status: 'Pending'
     },
     {
       id: 'req-2',
       studentName: 'Nisha Patel',
+      studentId: 'STU-2023-045',
+      studentEmail: 'nisha.patel@student.edu',
       department: 'Mechanical Engineering',
       year: 'Year III',
       appliedDate: '2026-07-29',
       clubName: 'Robotics Association',
       clubId: 'club-2',
-      status: 'Pending',
+      statement: 'Interested in autonomous drone navigation and CAD modeling for RoboWars.',
+      skills: 'SolidWorks, Arduino, C++',
+      status: 'Pending'
     },
     {
       id: 'req-3',
       studentName: 'Rohan Das',
-      department: 'Business Administration',
+      studentId: 'STU-2025-011',
+      studentEmail: 'rohan.das@student.edu',
+      department: 'School of Management',
       year: 'Year I',
       appliedDate: '2026-07-30',
       clubName: 'Business & Entrepreneurship Club',
       clubId: 'club-4',
-      status: 'Pending',
+      statement: 'Working on a fintech pitch deck. Eager to network with mentors and VC leads.',
+      skills: 'Financial Modeling, Pitch Decks',
+      status: 'Pending'
     },
+    {
+      id: 'req-4',
+      studentName: 'Sneha Kapoor',
+      studentId: 'STU-2024-078',
+      studentEmail: 'sneha.kapoor@student.edu',
+      department: 'Humanities & Social Sciences',
+      year: 'Year II',
+      appliedDate: '2026-07-25',
+      clubName: 'Debate & Literary Society',
+      clubId: 'club-3',
+      statement: 'Active inter-school debate winner. Eager to represent the college at regional MUNs.',
+      skills: 'Public Speaking, Model UN',
+      status: 'Waitlisted',
+      rejectionReason: 'Capacity limit reached for current semester. Placed on waitlist.'
+    },
+    {
+      id: 'req-5',
+      studentName: 'Vikram Mehta',
+      studentId: 'STU-2023-090',
+      studentEmail: 'vikram.mehta@student.edu',
+      department: 'Media & Design',
+      year: 'Year III',
+      appliedDate: '2026-07-20',
+      clubName: 'Creative Photography Guild',
+      clubId: 'club-5',
+      statement: 'Landscape and event photographer with 2 years of DSLR experience.',
+      skills: 'Lightroom, Photoshop',
+      status: 'Approved',
+      processedDate: '2026-07-22'
+    }
+  ]);
+
+  // Mock Gallery Albums
+  const [galleryAlbums, setGalleryAlbums] = useState<GalleryAlbum[]>([
+    {
+      id: 'album-1',
+      clubId: 'club-1',
+      title: 'Annual Hackathon 2026',
+      description: 'Photos and keynote highlights from our flagship 24-hour coding sprint.',
+      coverImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&h=600&fit=crop&q=80',
+      eventId: 'event-1',
+      createdDate: '2026-06-15',
+      mediaCount: 4
+    },
+    {
+      id: 'album-2',
+      clubId: 'club-1',
+      title: 'Open Source Bootcamp',
+      description: 'Git, GitHub, and PR contribution workshops for new members.',
+      coverImage: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&h=600&fit=crop&q=80',
+      createdDate: '2026-05-10',
+      mediaCount: 3
+    },
+    {
+      id: 'album-3',
+      clubId: 'club-2',
+      title: 'RoboWars Championship',
+      description: 'High-octane combat bot showdowns and drone race trials.',
+      coverImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=600&fit=crop&q=80',
+      createdDate: '2026-04-22',
+      mediaCount: 2
+    }
+  ]);
+
+  // Mock Gallery Media Items
+  const [galleryMediaItems, setGalleryMediaItems] = useState<GalleryMediaItem[]>([
+    {
+      id: 'media-1',
+      albumId: 'album-1',
+      clubId: 'club-1',
+      title: 'Opening Ceremony Keynote',
+      caption: 'Dr. Jenkins welcoming 200+ hackathon participants.',
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&h=800&fit=crop&q=80',
+      uploadedBy: 'Alex Mercer',
+      uploadedDate: '2026-06-15'
+    },
+    {
+      id: 'media-2',
+      albumId: 'album-1',
+      clubId: 'club-1',
+      title: 'Midnight Coding Rush',
+      caption: 'Teams collaborating past midnight on AI campus assistants.',
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=800&fit=crop&q=80',
+      uploadedBy: 'Alex Mercer',
+      uploadedDate: '2026-06-15'
+    },
+    {
+      id: 'media-3',
+      albumId: 'album-1',
+      clubId: 'club-1',
+      title: 'Hackathon Highlights Recap',
+      caption: 'Official video recap of winning team presentations.',
+      type: 'video',
+      url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      thumbnail: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&h=600&fit=crop&q=80',
+      uploadedBy: 'Alex Mercer',
+      uploadedDate: '2026-06-16'
+    },
+    {
+      id: 'media-4',
+      albumId: 'album-2',
+      clubId: 'club-1',
+      title: 'Git Branching Hands-On',
+      caption: 'Interactive workshop on merge conflicts and pull requests.',
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&h=800&fit=crop&q=80',
+      uploadedBy: 'Rohit Sen',
+      uploadedDate: '2026-05-10'
+    }
   ]);
 
   // Mock Opportunities
@@ -1165,6 +1476,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
   };
 
+  // Club Member Roster Actions
+  const addClubMember = (memberData: Omit<ClubMember, 'id' | 'joinedDate'>) => {
+    const newMember: ClubMember = {
+      ...memberData,
+      id: `mem-${Date.now()}`,
+      joinedDate: new Date().toISOString().split('T')[0],
+      status: 'Active'
+    };
+    setClubMembers(prev => [newMember, ...prev]);
+
+    // Update club member count in club state
+    setClubs(prev =>
+      prev.map(c => (c.id === memberData.clubId ? { ...c, membersCount: c.membersCount + 1 } : c))
+    );
+
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'membership',
+      title: 'New Member Enrolled',
+      message: `${memberData.name} was added to the club roster as ${memberData.role}.`,
+      date: 'Just now',
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const updateMemberRole = (memberId: string, role: CommitteeRole) => {
+    setClubMembers(prev =>
+      prev.map(m => {
+        if (m.id === memberId) {
+          // If role changed to President, update club president property if matched
+          if (role === 'President') {
+            setClubs(cPrev => cPrev.map(c => c.id === m.clubId ? { ...c, president: m.name } : c));
+          }
+          return { ...m, role };
+        }
+        return m;
+      })
+    );
+
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'membership',
+      title: 'Member Designation Updated',
+      message: `Member role updated to ${role}.`,
+      date: 'Just now',
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const removeClubMember = (memberId: string) => {
+    const targetMember = clubMembers.find(m => m.id === memberId);
+    if (targetMember) {
+      setClubs(prev =>
+        prev.map(c => (c.id === targetMember.clubId ? { ...c, membersCount: Math.max(0, c.membersCount - 1) } : c))
+      );
+    }
+    setClubMembers(prev => prev.filter(m => m.id !== memberId));
+
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'membership',
+      title: 'Member Removed',
+      message: `Member was removed from the roster.`,
+      date: 'Just now',
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const toggleMemberStatus = (memberId: string) => {
+    setClubMembers(prev =>
+      prev.map(m => (m.id === memberId ? { ...m, status: m.status === 'Active' ? 'Inactive' : 'Active' } : m))
+    );
+  };
+
   const registerForEvent = (eventId: string) => {
     setEvents(prev =>
       prev.map(evt => {
@@ -1235,49 +1623,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const handleMembership = (requestId: string, action: 'approve' | 'reject') => {
+  const handleMembership = (requestId: string, action: 'approve' | 'reject' | 'waitlist', feedback?: string) => {
     setMembershipRequests(prev =>
       prev.map(req => {
         if (req.id === requestId) {
-          const status = action === 'approve' ? 'Approved' : 'Rejected';
+          const status = action === 'approve' ? 'Approved' : action === 'waitlist' ? 'Waitlisted' : 'Rejected';
+          const today = new Date().toISOString().split('T')[0];
 
           // Add notification
           const newNotif: NotificationItem = {
             id: `notif-${Date.now()}`,
             type: 'membership',
             title: `Membership Request ${status}`,
-            message: `Membership request for ${req.studentName} in ${req.clubName} was ${status.toLowerCase()}.`,
+            message: `Your membership request for ${req.clubName} was ${status.toLowerCase()}.${feedback ? ` Feedback: ${feedback}` : ''}`,
             date: 'Just now',
             read: false,
           };
           setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
 
-          // If approved, update club member count and status in local state
+          // If approved, create active member in clubMembers roster & update club count
           if (action === 'approve') {
+            const newMember: ClubMember = {
+              id: `mem-${Date.now()}`,
+              clubId: req.clubId,
+              studentId: req.studentId || `STU-${Date.now().toString().slice(-4)}`,
+              name: req.studentName,
+              avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&q=80',
+              email: req.studentEmail || `${req.studentName.toLowerCase().replace(/\s+/g, '.')}@student.edu`,
+              department: req.department,
+              academicYear: req.year,
+              role: 'General Member',
+              joinedDate: today,
+              status: 'Active'
+            };
+            setClubMembers(prevM => [newMember, ...prevM]);
+
             setClubs(prevClubs =>
               prevClubs.map(c => (c.id === req.clubId ? { ...c, membersCount: c.membersCount + 1 } : c))
             );
           }
 
-          return { ...req, status };
+          return { ...req, status, rejectionReason: feedback, processedDate: today };
         }
         return req;
       })
     );
   };
 
-  const submitMembershipRequest = (clubId: string, details: { studentName: string; department: string; year: string }) => {
+  const submitMembershipRequest = (clubId: string, details: { studentName: string; studentId?: string; studentEmail?: string; department: string; year: string; statement?: string; skills?: string }) => {
     const targetClub = clubs.find(c => c.id === clubId);
     if (!targetClub) return;
 
     const newRequest: MembershipRequest = {
       id: `req-${Date.now()}`,
       studentName: details.studentName,
+      studentId: details.studentId || `STU-${Date.now().toString().slice(-4)}`,
+      studentEmail: details.studentEmail || `${details.studentName.toLowerCase().replace(/\s+/g, '.')}@student.edu`,
       department: details.department,
       year: details.year,
       appliedDate: new Date().toISOString().split('T')[0],
       clubName: targetClub.name,
       clubId: targetClub.id,
+      statement: details.statement,
+      skills: details.skills,
       status: 'Pending',
     };
     setMembershipRequests(prev => [newRequest, ...prev]);
@@ -1286,12 +1694,140 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
       type: 'membership',
-      title: 'Membership Request Filed',
-      message: `You applied to join ${targetClub.name}. Waiting for approval.`,
+      title: 'Membership Request Submitted',
+      message: `Your application to join ${targetClub.name} was submitted for review.`,
       date: 'Just now',
       read: false,
     };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  // Gallery Context Actions
+  const createGalleryAlbum = (albumData: Omit<GalleryAlbum, 'id' | 'createdDate' | 'mediaCount'>) => {
+    const newAlbum: GalleryAlbum = {
+      ...albumData,
+      id: `album-${Date.now()}`,
+      createdDate: new Date().toISOString().split('T')[0],
+      mediaCount: 0
+    };
+    setGalleryAlbums(prev => [newAlbum, ...prev]);
+
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'New Gallery Album Created',
+      message: `Album "${albumData.title}" was published to gallery.`,
+      date: 'Just now',
+      read: false
+    };
     setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const updateGalleryAlbum = (albumId: string, data: Partial<GalleryAlbum>) => {
+    setGalleryAlbums(prev =>
+      prev.map(a => (a.id === albumId ? { ...a, ...data } : a))
+    );
+  };
+
+  const deleteGalleryAlbum = (albumId: string) => {
+    setGalleryAlbums(prev => prev.filter(a => a.id !== albumId));
+    setGalleryMediaItems(prev => prev.filter(m => m.albumId !== albumId));
+  };
+
+  const uploadGalleryMedia = (mediaData: Omit<GalleryMediaItem, 'id' | 'uploadedDate'>) => {
+    const newMedia: GalleryMediaItem = {
+      ...mediaData,
+      id: `media-${Date.now()}`,
+      uploadedDate: new Date().toISOString().split('T')[0],
+      isDeleted: false
+    };
+    setGalleryMediaItems(prev => [newMedia, ...prev]);
+
+    // Update mediaCount in target album
+    setGalleryAlbums(prev =>
+      prev.map(a => (a.id === mediaData.albumId ? { ...a, mediaCount: a.mediaCount + 1 } : a))
+    );
+
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'Gallery Media Uploaded',
+      message: `New ${mediaData.type} "${mediaData.title}" uploaded to gallery.`,
+      date: 'Just now',
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const deleteGalleryMedia = (mediaId: string) => {
+    setGalleryMediaItems(prev =>
+      prev.map(m => (m.id === mediaId ? { ...m, isDeleted: true } : m))
+    );
+  };
+
+  const restoreGalleryMedia = (mediaId: string) => {
+    setGalleryMediaItems(prev =>
+      prev.map(m => (m.id === mediaId ? { ...m, isDeleted: false } : m))
+    );
+  };
+
+  const getClubStats = (clubId: string): ClubAnalyticsData => {
+    const targetClub = clubs.find(c => c.id === clubId);
+    const members = clubMembers.filter(m => m.clubId === clubId);
+    const clubEvts = events.filter(e => e.clubId === clubId && e.status === 'Approved');
+
+    const totalMembers = targetClub ? targetClub.membersCount : members.length;
+    const activeMembers = members.filter(m => m.status === 'Active').length || Math.round(totalMembers * 0.85);
+    const activePercentage = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 100;
+    const eventCount = targetClub ? targetClub.upcomingEventsCount + clubEvts.length : clubEvts.length;
+
+    // Derived AP Points and Attendance metrics
+    const totalApPoints = (activeMembers * 45) + (eventCount * 120);
+    const attendanceRate = 88; // Default 88% overall attendance
+    const certificatesIssued = eventCount * 35;
+
+    // Department Breakdown
+    const deptMap: Record<string, number> = {};
+    members.forEach(m => {
+      deptMap[m.department] = (deptMap[m.department] || 0) + 1;
+    });
+
+    const defaultDepts = [
+      'Computer Science & Engineering',
+      'Information Technology',
+      'Mechanical Engineering',
+      'Humanities & Social Sciences',
+    ];
+
+    const departmentBreakdown = (Object.keys(deptMap).length > 0 ? Object.keys(deptMap) : defaultDepts).map(dept => {
+      const count = deptMap[dept] || Math.floor(Math.random() * 25) + 10;
+      return {
+        department: dept,
+        count,
+        percentage: Math.min(100, Math.round((count / Math.max(1, totalMembers)) * 100))
+      };
+    });
+
+    const monthlyGrowth = [
+      { month: 'Jan', members: Math.round(totalMembers * 0.4), events: 1, apPoints: 200 },
+      { month: 'Feb', members: Math.round(totalMembers * 0.55), events: 2, apPoints: 450 },
+      { month: 'Mar', members: Math.round(totalMembers * 0.7), events: 3, apPoints: 700 },
+      { month: 'Apr', members: Math.round(totalMembers * 0.85), events: 3, apPoints: 950 },
+      { month: 'May', members: totalMembers, events: Math.max(1, eventCount), apPoints: totalApPoints }
+    ];
+
+    return {
+      clubId,
+      totalMembers,
+      activeMembers,
+      activePercentage,
+      eventCount,
+      totalApPoints,
+      attendanceRate,
+      certificatesIssued,
+      monthlyGrowth,
+      departmentBreakdown
+    };
   };
 
   const toggleBookmarkOpportunity = (oppId: string) => {
@@ -1556,6 +2092,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         changeClubStatus,
         assignFacultyCoordinator,
         assignPresident,
+        clubMembers,
+        addClubMember,
+        updateMemberRole,
+        removeClubMember,
+        toggleMemberStatus,
         events,
         registerForEvent,
         createEvent,
@@ -1563,6 +2104,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         membershipRequests,
         handleMembership,
         submitMembershipRequest,
+        galleryAlbums,
+        galleryMediaItems,
+        createGalleryAlbum,
+        updateGalleryAlbum,
+        deleteGalleryAlbum,
+        uploadGalleryMedia,
+        deleteGalleryMedia,
+        restoreGalleryMedia,
+        getClubStats,
         opportunities,
         toggleBookmarkOpportunity,
         applyOpportunity,

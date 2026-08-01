@@ -1,0 +1,90 @@
+# Implementation Plan - Module 5: Club Management (Milestone 2: Members & Committee)
+
+This plan details the technical architecture, data model extensions, state management, UI components, role permissions, and validation required to transform **Milestone 2 — Members & Committee** into a fully interactive, production-ready system.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Data Model & State Additions**:
+> We will add the `ClubMember` schema to `AppContext.tsx` with roles (`President`, `Vice President`, `Secretary`, `Treasurer`, `Core Member`, `General Member`).
+> New context methods will be added: `addClubMember`, `updateMemberRole`, `removeClubMember`, and `toggleMemberStatus`.
+
+> [!NOTE]
+> Member rosters will feature hierarchical executive cards (President, VP, Secretary, Treasurer), promote/demote role controls, removal confirmation dialogs, search, and multi-tier filtering.
+
+---
+
+## Proposed Changes
+
+### 1. Data Schema & Core AppContext State
+
+#### [MODIFY] [AppContext.tsx](file:///e:/krishna/demo1/Frontend/src/modules/common/contexts/AppContext.tsx)
+- Define `CommitteeRole = 'President' | 'Vice President' | 'Secretary' | 'Treasurer' | 'Core Member' | 'General Member'`.
+- Define `ClubMember` interface (`id`, `clubId`, `studentId`, `name`, `avatar`, `email`, `department`, `academicYear`, `role`, `joinedDate`, `status`).
+- Add state handlers to `AppContext`:
+  - `clubMembers: ClubMember[]`
+  - `addClubMember(member: Omit<ClubMember, 'id' | 'joinedDate'>): void`
+  - `updateMemberRole(memberId: string, role: CommitteeRole): void`
+  - `removeClubMember(memberId: string): void`
+  - `toggleMemberStatus(memberId: string): void`
+- Initialize realistic default rosters across all active clubs (Coding Club, Robotics Association, Debate Society, etc.).
+
+---
+
+### 2. Member & Committee Components
+
+#### [NEW] [MemberRoleModal.tsx](file:///e:/krishna/demo1/Frontend/src/modules/club-management/components/MemberRoleModal.tsx)
+- Modal dialog for changing member role / promoting / demoting.
+- Role options: President, Vice President, Secretary, Treasurer, Core Member, General Member.
+- Emits notification on role update.
+
+#### [NEW] [AddMemberModal.tsx](file:///e:/krishna/demo1/Frontend/src/modules/club-management/components/AddMemberModal.tsx)
+- Modal for adding/registering a student to a club roster.
+- Input fields: Student Name, Email, Department, Academic Year, Initial Role.
+
+---
+
+### 3. Page Level Implementations
+
+#### [MODIFY] [PresidentMembers.tsx](file:///e:/krishna/demo1/Frontend/src/modules/club-management/pages/PresidentMembers.tsx)
+- Interactive management console for Club Presidents and Admins.
+- Summary metrics: Total Members, Executive Officers, Core Leads, Active Roster %.
+- Filters: Search by name/email/dept, filter by Role, Department, Academic Year.
+- Datatable with action buttons: Promote/Demote Role, Toggle Active Status, Remove Member.
+- Integration with `MemberRoleModal` and `AddMemberModal`.
+
+#### [MODIFY] [CommitteeMembers.tsx](file:///e:/krishna/demo1/Frontend/src/modules/club-management/pages/CommitteeMembers.tsx)
+- Hierarchical Executive Committee view & Student Directory.
+- Executive Leadership Showcase cards (President, Vice President, Secretary, Treasurer).
+- Club selection tabs and search/filters across all club rosters.
+- Responsive list/table view for general and core members.
+
+#### [MODIFY] [index.ts](file:///e:/krishna/demo1/Frontend/src/modules/club-management/index.ts)
+- Export new components (`MemberRoleModal`, `AddMemberModal`).
+
+---
+
+## Role Permissions Matrix
+
+| Action | President / Admin / SuperAdmin | Faculty Coordinator | Student Member |
+| :--- | :---: | :---: | :---: |
+| **View Committee Hierarchy** | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Search & Filter Members** | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Add Member to Club** | ✅ Yes | ✅ Supervised Club | ❌ No |
+| **Promote / Demote Member** | ✅ Yes | ✅ Supervised Club | ❌ No |
+| **Remove Member from Roster** | ✅ Yes | ✅ Supervised Club | ❌ No |
+| **Toggle Member Status** | ✅ Yes | ✅ Supervised Club | ❌ No |
+
+---
+
+## Verification Plan
+
+### Automated Build Checks
+- Run `npx tsc --noEmit` and `npm run build` in `Frontend` directory to verify zero TypeScript or bundle build errors.
+
+### Manual Functional Verification
+- Test promoting a member from General Member to Vice President and verify badge updates.
+- Test demoting a member and removing a member with confirmation dialog.
+- Test adding a new student to a club with initial role selection.
+- Test filtering by role, department, and academic year.
+- Verify notification generation for member role updates and removals.
