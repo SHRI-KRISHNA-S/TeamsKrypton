@@ -73,6 +73,7 @@ model User {
   skills                String[]                 @default([])
   bio                   String?
   avatar                String?
+  totalAp               Int                      @default(0)
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
   refreshTokens         RefreshToken[]
@@ -88,6 +89,11 @@ model User {
   opportunities         Opportunity[]
   applications          OpportunityApplication[]
   notifications         Notification[]
+  projects              Project[]
+  achievements          Achievement[]
+  certificates          Certificate[]
+  auditLogs             AuditLog[]
+  activityTransactions  ActivityTransaction[]
 
   @@map("users")
 }
@@ -309,4 +315,77 @@ model Notification {
   createdAt DateTime         @default(now())
 
   @@map("notifications")
+}
+
+model ActivityTransaction {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityType String
+  points       Int
+  description  String
+  referenceId  String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+
+  @@map("activity_transactions")
+}
+
+model Certificate {
+  id        String   @id @default(uuid())
+  uniqueId  String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  issuedBy  String
+  issueDate DateTime
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@map("certificates")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  link        String?
+  createdAt   DateTime @default(now())
+
+  @@map("projects")
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+
+  @@map("achievements")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model GlobalSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("global_settings")
 }
