@@ -14,6 +14,20 @@ const router = Router();
 
 /**
  * @swagger
+ * /events:
+ *   get:
+ *     summary: Retrieve all events
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of events returned
+ */
+router.get('/', requireAuth, eventController.getEvents);
+
+/**
+ * @swagger
  * /events/{eventId}:
  *   get:
  *     summary: Retrieve event details by ID

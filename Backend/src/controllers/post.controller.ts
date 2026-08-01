@@ -120,3 +120,19 @@ export const toggleBookmark = async (
     next(error);
   }
 };
+
+export const deletePost = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await postService.deletePost(req.params.postId);
+    res.status(200).json({
+      status: 'success',
+      message: 'Post deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};

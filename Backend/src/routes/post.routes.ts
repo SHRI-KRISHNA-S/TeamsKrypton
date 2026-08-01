@@ -146,5 +146,6 @@ router.post('/:postId/like', requireAuth, postController.toggleLike);
  *         description: Status updated
  */
 router.post('/:postId/bookmark', requireAuth, postController.toggleBookmark);
+router.delete('/:postId', requireAuth, postController.deletePost);
 
 export default router;

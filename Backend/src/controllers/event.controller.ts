@@ -20,6 +20,22 @@ export const getEventById = async (
   }
 };
 
+export const getEvents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const events = await eventService.getEventsList();
+    res.status(200).json({
+      status: 'success',
+      data: { events },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createEvent = async (
   req: Request,
   res: Response,

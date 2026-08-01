@@ -123,4 +123,8 @@ export class PostRepository {
       return true; // Bookmarked
     }
   }
+
+  async delete(id: string): Promise<Post> {
+    return prisma.post.delete({ where: { id } });
+  }
 }

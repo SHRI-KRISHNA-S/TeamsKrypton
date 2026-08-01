@@ -934,159 +934,243 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
+  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('accessToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    };
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1${endpoint}`, {
+        ...options,
+        headers,
+      });
+      const json = await res.json();
+      return json;
+    } catch (err) {
+      console.error(`API Error on ${endpoint}:`, err);
+      return null;
+    }
+  };
+
+  const syncWithBackend = async () => {
+    try {
+      // 1. Fetch Clubs
+      const clubsRes = await apiCall('/clubs');
+      if (clubsRes?.status === 'success' && Array.isArray(clubsRes.data?.clubs)) {
+        setClubs(clubsRes.data.clubs.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          description: c.description,
+          logo: c.logo || 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=150',
+          facultyCoordinator: c.facultyCoordinator || 'Dr. Sarah Jenkins',
+          president: c.president || 'Alex Mercer',
+          membersCount: c.membersCount || 142,
+          upcomingEventsCount: c.upcomingEventsCount || 0,
+          isJoined: c.isJoined || false,
+        })));
+      }
+
+      // 2. Fetch Events
+      const eventsRes = await apiCall('/events');
+      if (eventsRes?.status === 'success' && Array.isArray(eventsRes.data?.events)) {
+        setEvents(eventsRes.data.events.map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          poster: e.poster || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800',
+          date: e.date.split('T')[0],
+          time: e.time || '10:00 AM - 04:00 PM',
+          venue: e.venue,
+          organizer: e.club?.name || 'Coding Club',
+          clubId: e.clubId,
+          registrationCount: e.registrationCount || 0,
+          status: e.isApproved ? 'Approved' : 'Pending Approval',
+          isRegistered: e.isRegistered || false,
+        })));
+      }
+
+      // 3. Fetch Opportunities
+      const oppsRes = await apiCall('/opportunities');
+      if (oppsRes?.status === 'success' && Array.isArray(oppsRes.data?.opportunities)) {
+        setOpportunities(oppsRes.data.opportunities.map((o: any) => ({
+          id: o.id,
+          title: o.title,
+          type: o.type.charAt(0).toUpperCase() + o.type.slice(1).toLowerCase(),
+          organizer: o.company || 'Google Students',
+          deadline: o.deadline.split('T')[0],
+          eligibility: o.requirements || 'All Engineering Students',
+          isApplied: o.isApplied || false,
+          isBookmarked: o.isBookmarked || false,
+          description: o.description,
+        })));
+      }
+
+      // 4. Fetch Campus Posts
+      const postsRes = await apiCall('/posts');
+      if (postsRes?.status === 'success' && Array.isArray(postsRes.data?.posts)) {
+        setCampusPosts(postsRes.data.posts.map((p: any) => ({
+          id: p.id,
+          userId: p.authorId,
+          author: p.author?.name || 'User',
+          avatar: p.author?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          department: p.author?.department || 'Campus',
+          clubBadge: p.club?.name,
+          roleBadge: p.author?.role || 'Student',
+          timestamp: new Date(p.createdAt).toLocaleDateString(),
+          content: p.content,
+          likes: p.likes?.length || 0,
+          hasLiked: p.likes?.some((l: any) => l.userId === p.authorId) || false,
+          isSaved: p.bookmarks?.some((b: any) => b.userId === p.authorId) || false,
+          comments: p.comments?.map((c: any) => ({
+            id: c.id,
+            userId: c.authorId,
+            author: c.author?.name || 'User',
+            avatar: c.author?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+            role: c.author?.role || 'Student',
+            department: c.author?.department || 'Campus',
+            content: c.content,
+            timestamp: new Date(c.createdAt).toLocaleDateString(),
+          })) || [],
+        })));
+      }
+
+      // 5. Fetch Notifications
+      const notifsRes = await apiCall('/notifications');
+      if (notifsRes?.status === 'success' && Array.isArray(notifsRes.data?.notifications)) {
+        setNotifications(notifsRes.data.notifications.map((n: any) => ({
+          id: n.id,
+          type: n.type.toLowerCase(),
+          title: n.title,
+          message: n.message,
+          date: new Date(n.createdAt).toLocaleDateString(),
+          read: n.isRead,
+        })));
+      }
+
+      // 6. Fetch User Profiles / Leaderboard
+      const leaderboardRes = await apiCall('/leaderboard');
+      if (leaderboardRes?.status === 'success' && Array.isArray(leaderboardRes.data?.leaderboard)) {
+        setUserProfiles(leaderboardRes.data.leaderboard.map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          avatar: u.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
+          department: u.department,
+          academicYear: u.academicYear || 'Year II',
+          club: u.club || 'Coding Club',
+          role: u.role || 'Student Member',
+          skills: u.skills || [],
+          bio: u.bio || '',
+          joinedClubs: u.joinedClubs || [],
+          upcomingEvents: u.upcomingEvents || [],
+          certificates: u.certificates || [],
+          achievements: u.achievements || [],
+          apPoints: u.activityPoints || 0,
+          recentAchievement: u.recentActivity || '',
+        })));
+      }
+    } catch (error) {
+      console.warn('Backend sync failed, using fallback mock states:', error);
+    }
+  };
+
+  // Switch role and login automatically
+  useEffect(() => {
+    const autoLogin = async () => {
+      const emailMap: Record<Role, string> = {
+        student: 'student@college.edu',
+        president: 'president@college.edu',
+        faculty: 'faculty@college.edu',
+        admin: 'admin@college.edu',
+        superadmin: 'superadmin@college.edu',
+      };
+      const email = emailMap[currentRole];
+      try {
+        const res = await fetch('http://localhost:5000/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: 'password123' }),
+        });
+        const json = await res.json();
+        if (json.status === 'success' && json.data?.accessToken) {
+          localStorage.setItem('accessToken', json.data.accessToken);
+          await syncWithBackend();
+        }
+      } catch (err) {
+        console.warn('Backend server not responding. Continuing with local offline states.', err);
+      }
+    };
+    autoLogin();
+  }, [currentRole]);
+
   // Actions
-  const joinClub = (clubId: string) => {
-    setClubs(prev =>
-      prev.map(club => {
-        if (club.id === clubId) {
-          const isJoined = !club.isJoined;
-          // Add notification
-          const newNotif: NotificationItem = {
-            id: `notif-${Date.now()}`,
-            type: 'club',
-            title: isJoined ? 'Club Joined' : 'Club Left',
-            message: isJoined
-              ? `You successfully joined ${club.name}. Welcome aboard!`
-              : `You left ${club.name}. Hope to see you back soon!`,
-            date: 'Just now',
-            read: false,
-          };
-          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
-          return { ...club, isJoined, membersCount: club.membersCount + (isJoined ? 1 : -1) };
-        }
-        return club;
-      })
-    );
+  const joinClub = async (clubId: string) => {
+    // Optimistic Update
+    setClubs(prev => prev.map(club => {
+      if (club.id === clubId) {
+        const isJoined = !club.isJoined;
+        return { ...club, isJoined, membersCount: club.membersCount + (isJoined ? 1 : -1) };
+      }
+      return club;
+    }));
+    await apiCall(`/memberships/clubs/${clubId}/join`, { method: 'POST' });
   };
 
-  const createClub = (club: Omit<Club, 'id' | 'membersCount' | 'upcomingEventsCount'>) => {
-    const newClub: Club = {
-      ...club,
-      id: `club-${Date.now()}`,
-      membersCount: 1,
-      upcomingEventsCount: 0,
-      isJoined: true,
-    };
+  const createClub = async (club: Omit<Club, 'id' | 'membersCount' | 'upcomingEventsCount'>) => {
+    const newClub = { ...club, id: `club-${Date.now()}`, membersCount: 1, upcomingEventsCount: 0, isJoined: true };
     setClubs(prev => [newClub, ...prev]);
-
-    // Send notifications
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: 'club',
-      title: 'New Club Registered',
-      message: `Club "${club.name}" was successfully registered by Faculty Coordinator ${club.facultyCoordinator}.`,
-      date: 'Just now',
-      read: false,
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+    await apiCall('/clubs', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: club.name,
+        description: club.description,
+        category: club.category,
+      }),
+    });
   };
 
-  const registerForEvent = (eventId: string) => {
-    setEvents(prev =>
-      prev.map(evt => {
-        if (evt.id === eventId) {
-          const isReg = !evt.isRegistered;
-          const newNotif: NotificationItem = {
-            id: `notif-${Date.now()}`,
-            type: 'event',
-            title: isReg ? 'Registered for Event' : 'Unregistered from Event',
-            message: isReg
-              ? `You are now registered for "${evt.title}". Calendar updated.`
-              : `You unregistered from "${evt.title}".`,
-            date: 'Just now',
-            read: false,
-          };
-          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
-          return { ...evt, isRegistered: isReg, registrationCount: evt.registrationCount + (isReg ? 1 : -1) };
-        }
-        return evt;
-      })
-    );
+  const registerForEvent = async (eventId: string) => {
+    setEvents(prev => prev.map(evt => {
+      if (evt.id === eventId) {
+        const isReg = !evt.isRegistered;
+        return { ...evt, isRegistered: isReg, registrationCount: evt.registrationCount + (isReg ? 1 : -1) };
+      }
+      return evt;
+    }));
+    await apiCall(`/events/${eventId}/register`, { method: 'POST' });
   };
 
-  const createEvent = (event: Omit<ClubEvent, 'id' | 'registrationCount' | 'status'>) => {
-    const newEvent: ClubEvent = {
-      ...event,
-      id: `event-${Date.now()}`,
-      registrationCount: 0,
-      status: currentRole === 'faculty' || currentRole === 'admin' || currentRole === 'superadmin' ? 'Approved' : 'Pending Approval',
-      isRegistered: false,
-    };
+  const createEvent = async (event: Omit<ClubEvent, 'id' | 'registrationCount' | 'status'>) => {
+    const newEvent = { ...event, id: `event-${Date.now()}`, registrationCount: 0, status: 'Pending Approval' as const, isRegistered: false };
     setEvents(prev => [newEvent, ...prev]);
-
-    // Send notifications
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: 'event',
-      title: 'Event Proposal Submitted',
-      message: `New event proposal "${event.title}" has been submitted for approval.`,
-      date: 'Just now',
-      read: false,
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    // Update club event count
-    setClubs(prevClubs =>
-      prevClubs.map(c => (c.id === event.clubId ? { ...c, upcomingEventsCount: c.upcomingEventsCount + 1 } : c))
-    );
+    await apiCall('/events', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: event.title,
+        description: event.title,
+        date: new Date(event.date).toISOString(),
+        venue: event.venue,
+        capacity: 100,
+        clubId: event.clubId,
+      }),
+    });
   };
 
-  const approveEvent = (eventId: string) => {
-    setEvents(prev =>
-      prev.map(evt => {
-        if (evt.id === eventId) {
-          const newNotif: NotificationItem = {
-            id: `notif-${Date.now()}`,
-            type: 'event',
-            title: 'Event Approved',
-            message: `The event proposal "${evt.title}" has been approved and is now public.`,
-            date: 'Just now',
-            read: false,
-          };
-          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
-          return { ...evt, status: 'Approved' };
-        }
-        return evt;
-      })
-    );
+  const approveEvent = async (eventId: string) => {
+    setEvents(prev => prev.map(evt => (evt.id === eventId ? { ...evt, status: 'Approved' } : evt)));
+    await apiCall(`/events/${eventId}/approve`, { method: 'POST' });
   };
 
-  const handleMembership = (requestId: string, action: 'approve' | 'reject') => {
-    setMembershipRequests(prev =>
-      prev.map(req => {
-        if (req.id === requestId) {
-          const status = action === 'approve' ? 'Approved' : 'Rejected';
-
-          // Add notification
-          const newNotif: NotificationItem = {
-            id: `notif-${Date.now()}`,
-            type: 'membership',
-            title: `Membership Request ${status}`,
-            message: `Membership request for ${req.studentName} in ${req.clubName} was ${status.toLowerCase()}.`,
-            date: 'Just now',
-            read: false,
-          };
-          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
-
-          // If approved, update club member count and status in local state
-          if (action === 'approve') {
-            setClubs(prevClubs =>
-              prevClubs.map(c => (c.id === req.clubId ? { ...c, membersCount: c.membersCount + 1 } : c))
-            );
-          }
-
-          return { ...req, status };
-        }
-        return req;
-      })
-    );
+  const handleMembership = async (requestId: string, action: 'approve' | 'reject') => {
+    setMembershipRequests(prev => prev.map(req => (req.id === requestId ? { ...req, status: action === 'approve' ? 'Approved' : 'Rejected' } : req)));
+    await apiCall(`/memberships/${requestId}/${action}`, { method: 'POST' });
   };
 
-  const submitMembershipRequest = (clubId: string, details: { studentName: string; department: string; year: string }) => {
+  const submitMembershipRequest = async (clubId: string, details: { studentName: string; department: string; year: string }) => {
     const targetClub = clubs.find(c => c.id === clubId);
     if (!targetClub) return;
-
-    const newRequest: MembershipRequest = {
+    const newRequest = {
       id: `req-${Date.now()}`,
       studentName: details.studentName,
       department: details.department,
@@ -1094,252 +1178,150 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       appliedDate: new Date().toISOString().split('T')[0],
       clubName: targetClub.name,
       clubId: targetClub.id,
-      status: 'Pending',
+      status: 'Pending' as const,
     };
     setMembershipRequests(prev => [newRequest, ...prev]);
-
-    // Send notifications
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: 'membership',
-      title: 'Membership Request Filed',
-      message: `You applied to join ${targetClub.name}. Waiting for approval.`,
-      date: 'Just now',
-      read: false,
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+    await apiCall(`/memberships/clubs/${clubId}/join`, { method: 'POST' });
   };
 
   const toggleBookmarkOpportunity = (oppId: string) => {
-    setOpportunities(prev =>
-      prev.map(opp => (opp.id === oppId ? { ...opp, isBookmarked: !opp.isBookmarked } : opp))
-    );
+    setOpportunities(prev => prev.map(opp => (opp.id === oppId ? { ...opp, isBookmarked: !opp.isBookmarked } : opp)));
+    apiCall(`/opportunities/${oppId}/bookmark`, { method: 'POST' }); // persistent bookmarks if supported
   };
 
-  const applyOpportunity = (oppId: string) => {
-    setOpportunities(prev =>
-      prev.map(opp => {
-        if (opp.id === oppId) {
-          const isApplied = !opp.isApplied;
-          const newNotif: NotificationItem = {
-            id: `notif-${Date.now()}`,
-            type: 'opportunity',
-            title: isApplied ? 'Applied for Opportunity' : 'Withdrawn Application',
-            message: isApplied
-              ? `Your application for "${opp.title}" was submitted.`
-              : `You withdrew your application for "${opp.title}".`,
-            date: 'Just now',
-            read: false,
-          };
-          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
-          return { ...opp, isApplied };
-        }
-        return opp;
-      })
-    );
+  const applyOpportunity = async (oppId: string) => {
+    setOpportunities(prev => prev.map(opp => (opp.id === oppId ? { ...opp, isApplied: !opp.isApplied } : opp)));
+    await apiCall(`/opportunities/${oppId}/apply`, { method: 'POST' });
   };
 
-  const createAnnouncement = (announcement: Omit<Announcement, 'id' | 'date'>) => {
-    const newAnn: Announcement = {
-      ...announcement,
-      id: `ann-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-    };
+  const createAnnouncement = async (announcement: Omit<Announcement, 'id' | 'date'>) => {
+    const newAnn = { ...announcement, id: `ann-${Date.now()}`, date: new Date().toISOString().split('T')[0] };
     setAnnouncements(prev => [newAnn, ...prev]);
-
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      type: 'announcement',
-      title: 'New Announcement Posted',
-      message: `[${announcement.priority}] ${announcement.title}`,
-      date: 'Just now',
-      read: false,
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+    await apiCall('/posts', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: announcement.title,
+        content: announcement.content,
+      }),
+    });
   };
 
-  const likePost = (postId: string) => {
-    setActivityFeed(prev =>
-      prev.map(post => {
-        if (post.id === postId) {
-          const hasLiked = !post.hasLiked;
-          return { ...post, hasLiked, likes: post.likes + (hasLiked ? 1 : -1) };
-        }
-        return post;
-      })
-    );
+  const likePost = async (postId: string) => {
+    setActivityFeed(prev => prev.map(post => (post.id === postId ? { ...post, hasLiked: !post.hasLiked, likes: post.likes + (post.hasLiked ? -1 : 1) } : post)));
+    await apiCall(`/posts/${postId}/like`, { method: 'POST' });
   };
 
-  const addComment = (postId: string, commentText: string) => {
+  const addComment = async (postId: string, commentText: string) => {
     if (!commentText.trim()) return;
-    setActivityFeed(prev =>
-      prev.map(post => {
-        if (post.id === postId) {
-          const newComment = {
-            id: `c-${Date.now()}`,
-            author: currentRole === 'student' ? 'Amit Sharma (You)' : `${currentRole.charAt(0).toUpperCase() + currentRole.slice(1)} User`,
-            content: commentText,
-            date: 'Just now',
-          };
-          return { ...post, comments: [...post.comments, newComment] };
-        }
-        return post;
-      })
-    );
+    setActivityFeed(prev => prev.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          comments: [...post.comments, { id: `c-${Date.now()}`, author: 'You', content: commentText, date: 'Just now' }],
+        };
+      }
+      return post;
+    }));
+    await apiCall(`/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content: commentText }),
+    });
   };
 
-  const markAllNotificationsRead = () => {
+  const markAllNotificationsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    // mark all read sequentially in backend
+    notifications.forEach(async (n) => {
+      await apiCall(`/notifications/${n.id}/read`, { method: 'PUT' });
+    });
   };
 
-  const markNotificationRead = (id: string) => {
+  const markNotificationRead = async (id: string) => {
     setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+    await apiCall(`/notifications/${id}/read`, { method: 'PUT' });
   };
 
-  const likeCampusPost = (postId: string) => {
-    setCampusPosts(prev =>
-      prev.map(post => {
-        if (post.id === postId) {
-          const hasLiked = !post.hasLiked;
-          return { ...post, hasLiked, likes: post.likes + (hasLiked ? 1 : -1) };
-        }
-        return post;
-      })
-    );
+  const likeCampusPost = async (postId: string) => {
+    setCampusPosts(prev => prev.map(post => (post.id === postId ? { ...post, hasLiked: !post.hasLiked, likes: post.likes + (post.hasLiked ? -1 : 1) } : post)));
+    await apiCall(`/posts/${postId}/like`, { method: 'POST' });
   };
 
-  const saveCampusPost = (postId: string) => {
-    setCampusPosts(prev =>
-      prev.map(post => (post.id === postId ? { ...post, isSaved: !post.isSaved } : post))
-    );
+  const saveCampusPost = async (postId: string) => {
+    setCampusPosts(prev => prev.map(post => (post.id === postId ? { ...post, isSaved: !post.isSaved } : post)));
+    await apiCall(`/posts/${postId}/bookmark`, { method: 'POST' });
   };
 
-  const addCampusComment = (postId: string, commentText: string) => {
+  const addCampusComment = async (postId: string, commentText: string) => {
     if (!commentText.trim()) return;
-    
-    // Find active user profile
-    const currentUserId = currentRole === 'student' ? 'user-student' : currentRole === 'president' ? 'user-president' : 'user-faculty';
-    const profile = userProfiles.find(p => p.id === currentUserId);
-    
-    setCampusPosts(prev =>
-      prev.map(post => {
-        if (post.id === postId) {
-          const newComment = {
-            id: `cc-comment-${Date.now()}`,
-            userId: currentUserId,
-            author: profile ? profile.name : 'User',
-            avatar: profile ? profile.avatar : '',
-            role: currentRole.charAt(0).toUpperCase() + currentRole.slice(1),
-            department: profile ? profile.department : '',
-            content: commentText,
-            timestamp: 'Just now'
-          };
-          return { ...post, comments: [...post.comments, newComment] };
-        }
-        return post;
-      })
-    );
+    setCampusPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          comments: [...post.comments, { id: `cc-comment-${Date.now()}`, userId: 'current', author: 'You', avatar: '', role: 'Student', department: 'CS', content: commentText, timestamp: 'Just now' }],
+        };
+      }
+      return post;
+    }));
+    await apiCall(`/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content: commentText }),
+    });
   };
 
-  const createCampusPost = (postData: { content: string; image?: string; eventTag?: string; clubTag?: string; isAnnouncement?: boolean }) => {
-    const currentUserId = currentRole === 'student' ? 'user-student' : currentRole === 'president' ? 'user-president' : 'user-faculty';
-    const profile = userProfiles.find(p => p.id === currentUserId);
-
-    const newPost: CampusConnectPost = {
+  const createCampusPost = async (postData: { content: string; image?: string; eventTag?: string; clubTag?: string; isAnnouncement?: boolean }) => {
+    const newPost = {
       id: `cc-post-${Date.now()}`,
-      userId: currentUserId,
-      author: profile ? profile.name : 'Unknown User',
-      avatar: profile ? profile.avatar : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&q=80',
-      department: profile ? profile.department : 'Campus',
-      clubBadge: postData.clubTag,
-      roleBadge: currentRole.charAt(0).toUpperCase() + currentRole.slice(1),
+      userId: 'current',
+      author: 'You',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      department: 'Computer Science',
+      roleBadge: 'Student',
       timestamp: 'Just now',
       content: postData.content,
-      image: postData.image,
-      eventTag: postData.eventTag,
-      clubTag: postData.clubTag,
-      likes: 0,
-      hasLiked: false,
-      isSaved: false,
-      isPinned: false,
-      isAnnouncement: postData.isAnnouncement || false,
-      comments: []
-    };
-
-    setCampusPosts(prev => [newPost, ...prev]);
-
-    // Track as activity post if needed
-    const newActivity: ActivityPost = {
-      id: `activity-${Date.now()}`,
-      author: newPost.author,
-      role: newPost.roleBadge + (newPost.clubBadge ? ` (${newPost.clubBadge})` : ''),
-      avatar: newPost.avatar,
-      content: newPost.content,
-      image: newPost.image,
       likes: 0,
       hasLiked: false,
       comments: [],
-      date: 'Just now'
     };
-    setActivityFeed(prev => [newActivity, ...prev]);
+    setCampusPosts(prev => [newPost, ...prev]);
+    await apiCall('/posts', {
+      method: 'POST',
+      body: JSON.stringify({ content: postData.content }),
+    });
   };
 
   const pinCampusPost = (postId: string) => {
-    setCampusPosts(prev =>
-      prev.map(post => (post.id === postId ? { ...post, isPinned: !post.isPinned } : post))
-    );
+    setCampusPosts(prev => prev.map(post => (post.id === postId ? { ...post, isPinned: !post.isPinned } : post)));
   };
 
-  const deleteCampusPost = (postId: string) => {
+  const deleteCampusPost = async (postId: string) => {
     setCampusPosts(prev => prev.filter(post => post.id !== postId));
+    await apiCall(`/posts/${postId}`, { method: 'DELETE' });
   };
 
   const suspendUser = (userId: string) => {
-    setUserProfiles(prev =>
-      prev.map(profile => {
-        if (profile.id === userId) {
-          const isSuspended = !profile.isSuspended;
-          // Add notification
-          const newNotif: NotificationItem = {
-            id: `notif-${Date.now()}`,
-            type: 'membership',
-            title: isSuspended ? 'User Suspended' : 'User Reinstated',
-            message: `User ${profile.name} was ${isSuspended ? 'suspended' : 'reinstated'} from the platform.`,
-            date: 'Just now',
-            read: false,
-          };
-          setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
-          return { ...profile, isSuspended };
-        }
-        return profile;
-      })
-    );
+    setUserProfiles(prev => prev.map(profile => (profile.id === userId ? { ...profile, isSuspended: !profile.isSuspended } : profile)));
   };
 
-  const updateApPoints = (userId: string, points: number) => {
-    setUserProfiles(prev =>
-      prev.map(profile => {
-        if (profile.id === userId) {
-          const newPoints = Math.max(0, profile.apPoints + points);
-          return { ...profile, apPoints: newPoints };
-        }
-        return profile;
-      })
-    );
+  const updateApPoints = async (userId: string, points: number) => {
+    setUserProfiles(prev => prev.map(p => (p.id === userId ? { ...p, apPoints: p.apPoints + points } : p)));
+    await apiCall('/ap/record', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId,
+        activityType: 'VOLUNTEER_ACTIVITY',
+        description: `Awarded points manually: ${points} AP`,
+      }),
+    });
   };
 
   const resetLeaderboard = () => {
-    setUserProfiles(prev =>
-      prev.map(profile => {
-        if (profile.role === 'Faculty Coordinator') return profile;
-        return { ...profile, apPoints: 0, recentAchievement: 'None' };
-      })
-    );
+    setUserProfiles(prev => prev.map(p => ({ ...p, apPoints: 0 })));
   };
 
   const updatePointRules = (rules: { key: string; label: string; points: number }[]) => {
     setPointRules(rules);
   };
+
 
   const globalSearch = (query: string) => {
     const lowerQuery = query.toLowerCase();

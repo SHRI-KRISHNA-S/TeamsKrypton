@@ -71,4 +71,9 @@ export class PostService {
     await this.getPostById(postId);
     return this.postRepository.toggleBookmark(postId, userId);
   }
+
+  async deletePost(id: string): Promise<Post> {
+    await this.getPostById(id);
+    return this.postRepository.delete(id);
+  }
 }

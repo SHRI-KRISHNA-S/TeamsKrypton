@@ -6,6 +6,12 @@ export class EventRepository {
     return prisma.event.findUnique({ where: { id }, include: { club: true } });
   }
 
+  async findAll(): Promise<Event[]> {
+    return prisma.event.findMany({
+      include: { club: { select: { name: true } } },
+    });
+  }
+
   async create(data: { title: string; description: string; date: Date; venue: string; capacity: number; clubId: string }): Promise<Event> {
     return prisma.event.create({
       data: {

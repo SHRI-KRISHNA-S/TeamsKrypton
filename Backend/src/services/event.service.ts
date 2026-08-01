@@ -15,6 +15,10 @@ export class EventService {
     return event;
   }
 
+  async getEventsList(): Promise<Event[]> {
+    return this.eventRepository.findAll();
+  }
+
   async createEvent(data: { title: string; description: string; date: string; venue: string; capacity: number; clubId: string }): Promise<Event> {
     const club = await this.clubRepository.findById(data.clubId);
     if (!club) {
