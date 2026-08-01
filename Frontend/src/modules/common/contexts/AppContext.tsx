@@ -67,14 +67,23 @@ export const roleConfigs: Record<Role, RoleConfig> = {
 export interface Club {
   id: string;
   name: string;
+  code?: string;
   category: string;
   description: string;
   logo: string;
+  banner?: string;
+  status: 'Active' | 'Inactive' | 'Archived';
+  visibility: 'Public' | 'Private';
   facultyCoordinator: string;
   president: string;
   membersCount: number;
   upcomingEventsCount: number;
   isJoined?: boolean;
+  objectives?: string[];
+  achievements?: { title: string; description: string }[];
+  establishedDate?: string;
+  contactEmail?: string;
+  department?: string;
 }
 
 export interface ClubEvent {
@@ -220,6 +229,12 @@ interface AppContextType {
   clubs: Club[];
   joinClub: (clubId: string) => void;
   createClub: (club: Omit<Club, 'id' | 'membersCount' | 'upcomingEventsCount'>) => void;
+  updateClub: (clubId: string, data: Partial<Club>) => void;
+  deleteClub: (clubId: string) => void;
+  archiveClub: (clubId: string) => void;
+  changeClubStatus: (clubId: string, status: 'Active' | 'Inactive' | 'Archived') => void;
+  assignFacultyCoordinator: (clubId: string, facultyName: string) => void;
+  assignPresident: (clubId: string, presidentName: string) => void;
   events: ClubEvent[];
   registerForEvent: (eventId: string) => void;
   createEvent: (event: Omit<ClubEvent, 'id' | 'registrationCount' | 'status'>) => void;
@@ -558,63 +573,142 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: 'club-1',
       name: 'Coding Club',
+      code: 'CODING',
       category: 'Technical',
       description: 'Dive deep into software engineering, algorithms, web development, and hackathons. Weekly coding contests and workshops.',
       logo: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=150&h=150&fit=crop&q=80',
+      banner: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop&q=80',
+      status: 'Active',
+      visibility: 'Public',
       facultyCoordinator: 'Dr. Sarah Jenkins (CSE)',
       president: 'Alex Mercer (Year IV)',
       membersCount: 142,
       upcomingEventsCount: 2,
       isJoined: true,
+      department: 'Computer Science & Engineering',
+      establishedDate: '2020-09-15',
+      contactEmail: 'codingclub@campus.edu',
+      objectives: [
+        'Conduct regular technical bootcamps and workshops on modern toolsets.',
+        'Promote student collaboration and prepare groups for national hackathons.',
+        'Build open-source solutions for campus utilities.'
+      ],
+      achievements: [
+        { title: 'National Hackathon Winner', description: 'Team led by Alex Mercer bagged 1st place in smart campus category.' }
+      ]
     },
     {
       id: 'club-2',
       name: 'Robotics Association',
+      code: 'ROBO',
       category: 'Engineering',
       description: 'Designing, building, and programming autonomous robots. Preparing teams for national level RoboWars & drone races.',
       logo: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=150&h=150&fit=crop&q=80',
+      banner: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&h=400&fit=crop&q=80',
+      status: 'Active',
+      visibility: 'Public',
       facultyCoordinator: 'Prof. Marcus Vance (Mech)',
       president: 'Liam Carter (Year IV)',
       membersCount: 89,
       upcomingEventsCount: 1,
       isJoined: false,
+      department: 'Mechanical Engineering',
+      establishedDate: '2019-04-10',
+      contactEmail: 'robotics@campus.edu',
+      objectives: [
+        'Design custom PCBs and mechanical chassis for autonomous bots.',
+        'Compete in RoboWars, Line Follower, and Drone Racing events.'
+      ]
     },
     {
       id: 'club-3',
       name: 'Debate & Literary Society',
+      code: 'DEBATE',
       category: 'Arts & Humanities',
       description: 'Fostering public speaking, analytical reasoning, and global perspective debates. Hosts the annual Model United Nations (MUN).',
       logo: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=150&h=150&fit=crop&q=80',
+      banner: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&h=400&fit=crop&q=80',
+      status: 'Active',
+      visibility: 'Public',
       facultyCoordinator: 'Dr. Emily Vance (Humanities)',
       president: 'Clara Hughes (Year III)',
       membersCount: 64,
       upcomingEventsCount: 1,
       isJoined: true,
+      department: 'Humanities & Social Sciences',
+      establishedDate: '2021-01-20',
+      contactEmail: 'debate@campus.edu',
+      objectives: [
+        'Host parliamentary debates and public speaking workshops.',
+        'Organize the annual campus Model United Nations conference.'
+      ]
     },
     {
       id: 'club-4',
       name: 'Business & Entrepreneurship Club',
+      code: 'BIZ',
       category: 'Business',
       description: 'Incubating startup ideas, learning equity management, financial modelling, and case studies. Networking with venture capitalists.',
       logo: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150&h=150&fit=crop&q=80',
+      banner: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&h=400&fit=crop&q=80',
+      status: 'Inactive',
+      visibility: 'Public',
       facultyCoordinator: 'Prof. Alan Vance (MBA)',
       president: 'Ryan Davis (Year IV)',
       membersCount: 110,
       upcomingEventsCount: 1,
       isJoined: false,
+      department: 'School of Management',
+      establishedDate: '2018-11-05',
+      contactEmail: 'bizclub@campus.edu',
+      objectives: [
+        'Run pitch deck sessions and startup incubator programs.',
+        'Invite industry leaders and venture capitalists for talks.'
+      ]
     },
     {
       id: 'club-5',
       name: 'Creative Photography Guild',
+      code: 'PHOTO',
       category: 'Creative Arts',
       description: 'Exploring visual aesthetics, street photography, lighting design, and digital post-processing. Organizes monthly photo-walks.',
       logo: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=150&h=150&fit=crop&q=80',
+      banner: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1200&h=400&fit=crop&q=80',
+      status: 'Active',
+      visibility: 'Public',
       facultyCoordinator: 'Prof. Sandra Hall (Fine Arts)',
       president: 'Elena Rostova (Year III)',
       membersCount: 45,
       upcomingEventsCount: 0,
       isJoined: false,
+      department: 'Media & Design',
+      establishedDate: '2022-03-12',
+      contactEmail: 'photography@campus.edu',
+      objectives: [
+        'Host monthly outdoor photo walks and studio lighting workshops.',
+        'Cover official campus events and curate annual photo exhibitions.'
+      ]
     },
+    {
+      id: 'club-6',
+      name: 'Gaming & E-Sports League',
+      code: 'GAMING',
+      category: 'Sports',
+      description: 'Competitive gaming tournaments, game design discussions, and LAN events across popular esports titles.',
+      logo: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&h=150&fit=crop&q=80',
+      banner: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&h=400&fit=crop&q=80',
+      status: 'Archived',
+      visibility: 'Private',
+      facultyCoordinator: 'Dr. Sarah Jenkins (CSE)',
+      president: 'Vikram Seth (Year IV)',
+      membersCount: 30,
+      upcomingEventsCount: 0,
+      isJoined: false,
+      department: 'Computer Science & Engineering',
+      establishedDate: '2021-08-01',
+      contactEmail: 'esports@campus.edu',
+      objectives: ['Host inter-college gaming leagues and game development jams.']
+    }
   ]);
 
   // Mock Events State
@@ -963,6 +1057,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newClub: Club = {
       ...club,
       id: `club-${Date.now()}`,
+      status: club.status || 'Active',
+      visibility: club.visibility || 'Public',
       membersCount: 1,
       upcomingEventsCount: 0,
       isJoined: true,
@@ -973,12 +1069,100 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
       type: 'club',
-      title: 'New Club Registered',
-      message: `Club "${club.name}" was successfully registered by Faculty Coordinator ${club.facultyCoordinator}.`,
+      title: 'New Club Created',
+      message: `Club "${club.name}" was successfully registered.`,
       date: 'Just now',
       read: false,
     };
-    setNotifications(prev => [newNotif, ...prev]);
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  const updateClub = (clubId: string, data: Partial<Club>) => {
+    setClubs(prev =>
+      prev.map(c => (c.id === clubId ? { ...c, ...data } : c))
+    );
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'Club Updated',
+      message: `Club details updated successfully.`,
+      date: 'Just now',
+      read: false,
+    };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  const deleteClub = (clubId: string) => {
+    setClubs(prev => prev.filter(c => c.id !== clubId));
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'Club Deleted',
+      message: `Club removed from registry.`,
+      date: 'Just now',
+      read: false,
+    };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  const archiveClub = (clubId: string) => {
+    setClubs(prev =>
+      prev.map(c => (c.id === clubId ? { ...c, status: 'Archived' } : c))
+    );
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'Club Archived',
+      message: `Club status updated to Archived.`,
+      date: 'Just now',
+      read: false,
+    };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  const changeClubStatus = (clubId: string, status: 'Active' | 'Inactive' | 'Archived') => {
+    setClubs(prev =>
+      prev.map(c => (c.id === clubId ? { ...c, status } : c))
+    );
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'Club Status Changed',
+      message: `Club status updated to ${status}.`,
+      date: 'Just now',
+      read: false,
+    };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  const assignFacultyCoordinator = (clubId: string, facultyName: string) => {
+    setClubs(prev =>
+      prev.map(c => (c.id === clubId ? { ...c, facultyCoordinator: facultyName } : c))
+    );
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'Leadership Assigned',
+      message: `Assigned ${facultyName} as Faculty Coordinator.`,
+      date: 'Just now',
+      read: false,
+    };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
+  };
+
+  const assignPresident = (clubId: string, presidentName: string) => {
+    setClubs(prev =>
+      prev.map(c => (c.id === clubId ? { ...c, president: presidentName } : c))
+    );
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      type: 'club',
+      title: 'President Assigned',
+      message: `Assigned ${presidentName} as Club President.`,
+      date: 'Just now',
+      read: false,
+    };
+    setNotifications(prevNotifs => [newNotif, ...prevNotifs]);
   };
 
   const registerForEvent = (eventId: string) => {
@@ -1366,6 +1550,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         clubs,
         joinClub,
         createClub,
+        updateClub,
+        deleteClub,
+        archiveClub,
+        changeClubStatus,
+        assignFacultyCoordinator,
+        assignPresident,
         events,
         registerForEvent,
         createEvent,

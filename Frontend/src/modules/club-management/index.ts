@@ -6,3 +6,6 @@ export * from './pages/PresidentOverview';
 export * from './pages/FacultyClubs';
 export * from './pages/FacultyApprovals';
 export * from './pages/AdminClubs';
+
+export * from './components/ClubFormModal';
+export * from './components/ClubAssignModal';
