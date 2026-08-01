@@ -1,0 +1,394 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String                   @id @default(uuid())
+  email                String                   @unique
+  password             String
+  name                 String
+  department           String
+  role                 Role                     @default(STUDENT)
+  isVerified           Boolean                  @default(false)
+  verificationToken    String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  skills               String[]                 @default([])
+  bio                  String?
+  avatar               String?
+  totalAp              Int                      @default(0)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  achievements         Achievement[]
+  activityTransactions ActivityTransaction[]
+  attendanceRecords    Attendance[]
+  auditLogs            AuditLog[]
+  bookmarks            Bookmark[]
+  certificates         Certificate[]
+  comments             Comment[]
+  registrations        EventRegistration[]
+  feedbacks            Feedback[]
+  uploadedMedia        GalleryItem[]
+  memberships          Membership[]
+  notifications        Notification[]
+  opportunities        Opportunity[]
+  applications         OpportunityApplication[]
+  likes                PostLike[]
+  posts                Post[]
+  projects             Project[]
+  refreshTokens        RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  deviceId  String?
+  ipAddress String?
+  userAgent String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Club {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  description String
+  category    String
+  logo        String?
+  banner      String?
+  isApproved  Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  events      Event[]
+  gallery     GalleryItem[]
+  memberships Membership[]
+  posts       Post[]
+
+  @@map("clubs")
+}
+
+model Membership {
+  id        String           @id @default(uuid())
+  userId    String
+  clubId    String
+  status    MembershipStatus @default(PENDING)
+  role      ClubRole         @default(MEMBER)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clubId])
+  @@map("memberships")
+}
+
+model Event {
+  id            String              @id @default(uuid())
+  title         String
+  description   String
+  date          DateTime
+  venue         String
+  capacity      Int
+  isApproved    Boolean             @default(false)
+  clubId        String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  attendance    Attendance[]
+  registrations EventRegistration[]
+  club          Club                @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  feedback      Feedback[]
+  gallery       GalleryItem[]
+
+  @@map("events")
+}
+
+model EventRegistration {
+  id        String             @id @default(uuid())
+  userId    String
+  eventId   String
+  status    RegistrationStatus @default(REGISTERED)
+  attended  Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("event_registrations")
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  userId    String
+  eventId   String
+  method    AttendanceMethod
+  markedBy  String
+  timestamp DateTime         @default(now())
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_records")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  rating    Int
+  comments  String?
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+model GalleryItem {
+  id        String   @id @default(uuid())
+  url       String
+  clubId    String?
+  eventId   String?
+  userId    String
+  createdAt DateTime @default(now())
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("gallery_items")
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  title     String?
+  content   String
+  authorId  String
+  clubId    String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  bookmarks Bookmark[]
+  comments  Comment[]
+  likes     PostLike[]
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  club      Club?      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("bookmarks")
+}
+
+model Opportunity {
+  id           String                   @id @default(uuid())
+  title        String
+  description  String
+  type         OpportunityType
+  company      String?
+  deadline     DateTime
+  location     String?
+  requirements String?
+  link         String?
+  postedById   String
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  postedBy     User                     @relation(fields: [postedById], references: [id], onDelete: Cascade)
+  applications OpportunityApplication[]
+
+  @@map("opportunities")
+}
+
+model OpportunityApplication {
+  id            String            @id @default(uuid())
+  opportunityId String
+  userId        String
+  resumeUrl     String?
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, userId])
+  @@map("opportunity_applications")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ActivityTransaction {
+  id           String   @id @default(uuid())
+  userId       String
+  activityType String
+  points       Int
+  description  String
+  referenceId  String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_transactions")
+}
+
+model Certificate {
+  id        String   @id @default(uuid())
+  uniqueId  String   @unique
+  userId    String
+  title     String
+  issuedBy  String
+  issueDate DateTime
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  link        String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("projects")
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("achievements")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model GlobalSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("global_settings")
+}
+
+enum Role {
+  STUDENT
+  CLUB_PRESIDENT
+  FACULTY_COORDINATOR
+  COLLEGE_ADMIN
+  SUPER_ADMIN
+}
+
+enum MembershipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ClubRole {
+  MEMBER
+  OFFICER
+  PRESIDENT
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  CANCELLED
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
+enum OpportunityType {
+  HACKATHON
+  COMPETITION
+  INTERNSHIP
+  RECRUITMENT
+  SCHOLARSHIP
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  EVENT_REMINDER
+  MEMBERSHIP_UPDATE
+  OPPORTUNITY_UPDATE
+}
