@@ -47,12 +47,22 @@ export class PortfolioService {
         bio: userContext.bio,
       },
       skills: userContext.skills,
-      achievements: userContext.achievements.map((a: any) => ({
-        id: a.id,
-        title: a.title,
-        description: a.description,
-        date: a.date,
-      })),
+      achievements: [
+        ...userContext.achievements.map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          date: a.date,
+        })),
+        ...userContext.certificates
+          .filter((c: any) => c.status === 'APPROVED')
+          .map((c: any) => ({
+            id: c.id,
+            title: `Certificate: ${c.title}`,
+            description: `Issued by ${c.issuedBy}. Category: ${c.category}. AP Earned: +${c.activityPoints}`,
+            date: c.issueDate,
+          }))
+      ],
       certificates: userContext.certificates,
       volunteerHours,
       projects: userContext.projects,

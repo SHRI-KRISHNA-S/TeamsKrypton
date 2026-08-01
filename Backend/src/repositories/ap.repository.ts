@@ -78,6 +78,7 @@ export class ApRepository {
         avatar: true,
         totalAp: true,
         achievements: { select: { title: true }, take: 2 },
+        certificates: { where: { status: 'APPROVED' }, select: { title: true }, take: 3 },
         activityTransactions: { select: { activityType: true, points: true, createdAt: true }, take: 1, orderBy: { createdAt: 'desc' } },
       },
       orderBy: {

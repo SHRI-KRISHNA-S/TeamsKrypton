@@ -7,12 +7,16 @@ import { logger } from './config/logger';
 import { rateLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import { swaggerSpec } from './config/swagger';
+import path from 'path';
 import router from './routes';
 
 const app = express();
 
+// Serve static uploaded certificates
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Security HTTP headers
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
 // CORS configuration
 app.use(cors({

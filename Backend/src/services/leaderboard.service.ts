@@ -60,6 +60,7 @@ export class LeaderboardService {
         activityPoints: user.totalAp,
         level,
         achievements: user.achievements.map((a: any) => a.title),
+        certificates: user.certificates.map((c: any) => c.title),
         recentActivity,
       };
     });

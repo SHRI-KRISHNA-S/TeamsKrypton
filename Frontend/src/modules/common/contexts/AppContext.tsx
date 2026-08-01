@@ -138,6 +138,22 @@ export interface Certificate {
   event: string;
   date: string;
   downloadUrl: string;
+  
+  // New extended attributes
+  documentUrl?: string;
+  documentType?: string;
+  fileSize?: number;
+  uploadedAt?: string;
+  verificationUrl?: string;
+  status?: string; // PENDING, APPROVED, REJECTED
+  approvedBy?: string;
+  approvedAt?: string;
+  remarks?: string;
+  skills?: string[];
+  category?: string;
+  description?: string;
+  activityPoints?: number;
+  expiryDate?: string;
 }
 
 export interface ActivityPost {
@@ -234,6 +250,10 @@ interface AppContextType {
   announcements: Announcement[];
   createAnnouncement: (announcement: Omit<Announcement, 'id' | 'date'>) => void;
   certificates: Certificate[];
+  uploadCertificate: (formData: FormData) => Promise<any>;
+  deleteCertificate: (id: string) => Promise<void>;
+  approveCertificate: (id: string, remarks?: string) => Promise<any>;
+  rejectCertificate: (id: string, remarks: string) => Promise<any>;
   activityFeed: ActivityPost[];
   likePost: (postId: string) => void;
   addComment: (postId: string, commentText: string) => void;
@@ -821,14 +841,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
   ]);
 
-  // Mock Certificates
-  const [certificates] = useState<Certificate[]>([
+  // Mock/Database Certificates State
+  const [certificates, setCertificates] = useState<Certificate[]>([
     {
       id: 'cert-1',
       certificateId: 'CERT-HT-8932',
       event: 'HackTech 2025: 1st Runners-up',
       date: '2025-11-12',
       downloadUrl: '#',
+      category: 'Hackathon',
+      status: 'APPROVED',
+      activityPoints: 500,
     },
     {
       id: 'cert-2',
@@ -836,6 +859,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       event: 'RoboWars Championship 2025 (Special Mention)',
       date: '2025-12-05',
       downloadUrl: '#',
+      category: 'Competition',
+      status: 'APPROVED',
+      activityPoints: 200,
     },
     {
       id: 'cert-3',
@@ -843,6 +869,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       event: 'AI/ML Bootcamp Completion',
       date: '2026-01-20',
       downloadUrl: '#',
+      category: 'Course Completion',
+      status: 'APPROVED',
+      activityPoints: 100,
     },
   ]);
 
@@ -1067,6 +1096,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           recentAchievement: u.recentActivity || '',
         })));
       }
+
+      // 7. Fetch Certificates
+      const certsRes = await apiCall('/certificates');
+      if (certsRes?.status === 'success' && Array.isArray(certsRes.data?.certificates)) {
+        setCertificates(certsRes.data.certificates.map((c: any) => ({
+          id: c.id,
+          certificateId: c.uniqueId,
+          event: c.title,
+          date: c.issueDate.split('T')[0],
+          downloadUrl: c.documentUrl ? `http://localhost:5000${c.documentUrl}` : '#',
+          documentUrl: c.documentUrl,
+          documentType: c.documentType,
+          fileSize: c.fileSize,
+          uploadedAt: c.uploadedAt,
+          verificationUrl: c.verificationUrl,
+          status: c.status,
+          approvedBy: c.approvedBy,
+          approvedAt: c.approvedAt,
+          remarks: c.remarks,
+          skills: c.skills,
+          category: c.category,
+          description: c.description,
+          activityPoints: c.activityPoints,
+          expiryDate: c.expiryDate ? c.expiryDate.split('T')[0] : null,
+        })));
+      }
     } catch (error) {
       console.warn('Backend sync failed, using fallback mock states:', error);
     }
@@ -1078,6 +1133,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       syncWithBackend();
     }
   }, [isAuthenticated]);
+
+  const uploadCertificate = async (formData: FormData) => {
+    try {
+      const res = await apiClient.post('/certificates/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (res.data?.status === 'success') {
+        await syncWithBackend();
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Error uploading certificate:', err);
+    }
+    return null;
+  };
+
+  const deleteCertificate = async (id: string) => {
+    setCertificates(prev => prev.filter(c => c.id !== id));
+    await apiCall(`/certificates/${id}`, { method: 'DELETE' });
+    await syncWithBackend();
+  };
+
+  const approveCertificate = async (id: string, remarks?: string) => {
+    const res = await apiCall(`/certificates/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ remarks }),
+    });
+    await syncWithBackend();
+    return res;
+  };
+
+  const rejectCertificate = async (id: string, remarks: string) => {
+    const res = await apiCall(`/certificates/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ remarks }),
+    });
+    await syncWithBackend();
+    return res;
+  };
 
   // Actions
   const joinClub = async (clubId: string) => {
@@ -1335,6 +1431,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         announcements,
         createAnnouncement,
         certificates,
+        uploadCertificate,
+        deleteCertificate,
+        approveCertificate,
+        rejectCertificate,
         activityFeed,
         likePost,
         addComment,

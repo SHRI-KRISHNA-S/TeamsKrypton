@@ -1,26 +1,82 @@
 import { prisma } from '../config/db';
-import { Certificate } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export class CertificateRepository {
-  async issueCertificate(data: { uniqueId: string; userId: string; title: string; issuedBy: string; issueDate: Date; metadata?: any }): Promise<Certificate> {
+  async create(data: Prisma.CertificateUncheckedCreateInput) {
     return prisma.certificate.create({
       data,
-    });
-  }
-
-  async findByUniqueId(uniqueId: string): Promise<any | null> {
-    return prisma.certificate.findUnique({
-      where: { uniqueId },
       include: {
-        user: { select: { name: true, email: true, department: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+            role: true,
+          },
+        },
       },
     });
   }
 
-  async getHistoryByUserId(userId: string): Promise<Certificate[]> {
+  async findMany(where: Prisma.CertificateWhereInput) {
     return prisma.certificate.findMany({
-      where: { userId },
-      orderBy: { issueDate: 'desc' },
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async findById(id: string) {
+    return prisma.certificate.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  async update(id: string, data: Prisma.CertificateUpdateInput) {
+    return prisma.certificate.update({
+      where: { id },
+      data,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  async delete(id: string) {
+    return prisma.certificate.delete({
+      where: { id },
     });
   }
 }

@@ -283,15 +283,31 @@ model ActivityTransaction {
 }
 
 model Certificate {
-  id        String   @id @default(uuid())
-  uniqueId  String   @unique
-  userId    String
-  title     String
-  issuedBy  String
-  issueDate DateTime
-  metadata  Json?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  uniqueId        String    @unique
+  userId          String
+  title           String
+  issuedBy        String
+  issueDate       DateTime
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Extended Fields for Upload and Verification
+  documentUrl     String?
+  documentType    String?
+  fileSize        Int?
+  uploadedAt      DateTime  @default(now())
+  verificationUrl String?
+  status          String    @default("PENDING")
+  approvedBy      String?
+  approvedAt      DateTime?
+  remarks         String?
+  skills          String[]  @default([])
+  category        String    @default("Other")
+  description     String?
+  activityPoints  Int       @default(0)
+  expiryDate      DateTime?
 
   @@map("certificates")
 }

@@ -20,7 +20,7 @@ import {
   Bookmark,
   Share2
 } from 'lucide-react';
-import { Card, CardHeader, CardBody, Button, Badge, ProgressBar, Table, useApp, ClubEvent, MembershipRequest, Role } from '../../common';
+import { Card, CardHeader, CardBody, Button, Badge, ProgressBar, Table, useApp, ClubEvent, MembershipRequest, Role, Certificate, Modal } from '../../common';
 
 const getBannerGradient = (role: Role) => {
   switch (role) {
@@ -49,7 +49,9 @@ export const Dashboards: React.FC = () => {
     certificates,
     opportunities,
     createAnnouncement,
-    createEvent
+    createEvent,
+    approveCertificate,
+    rejectCertificate
   } = useApp();
 
   // State for modals
@@ -172,6 +174,9 @@ export const Dashboards: React.FC = () => {
           approveEvent={approveEvent}
           requests={membershipRequests.filter(r => r.status === 'Pending')}
           handleRequest={handleMembership}
+          certificates={certificates}
+          approveCertificate={approveCertificate}
+          rejectCertificate={rejectCertificate}
         />
       )}
 
@@ -182,6 +187,7 @@ export const Dashboards: React.FC = () => {
           requests={membershipRequests.filter(r => r.status === 'Pending')}
           handleRequest={handleMembership}
           setShowAnnounceModal={setShowAnnounceModal}
+          certificates={certificates}
         />
       )}
 
@@ -622,15 +628,59 @@ interface FacultyDashProps {
   approveEvent: (id: string) => void;
   requests: MembershipRequest[];
   handleRequest: (id: string, action: 'approve' | 'reject') => void;
+  certificates: Certificate[];
+  approveCertificate: (id: string, remarks?: string) => Promise<any>;
+  rejectCertificate: (id: string, remarks: string) => Promise<any>;
 }
 const FacultyDashboard: React.FC<FacultyDashProps> = ({
   pendingEvents,
   approveEvent,
   requests,
-  handleRequest
+  handleRequest,
+  certificates,
+  approveCertificate,
+  rejectCertificate
 }) => {
+  const [reviewCert, setReviewCert] = useState<Certificate | null>(null);
+  const [remarks, setRemarks] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const pendingCerts = certificates.filter(c => c.status === 'PENDING');
+
+  const handleApprove = async (id: string) => {
+    setSubmitting(true);
+    await approveCertificate(id, remarks || 'Approved by Faculty Coordinator');
+    setSubmitting(false);
+    setReviewCert(null);
+    setRemarks('');
+  };
+
+  const handleReject = async (id: string) => {
+    if (!remarks) {
+      alert('Please enter remarks/comments before rejecting.');
+      return;
+    }
+    setSubmitting(true);
+    await rejectCertificate(id, remarks);
+    setSubmitting(false);
+    setReviewCert(null);
+    setRemarks('');
+  };
+
+  const handleBulkApprove = async () => {
+    if (pendingCerts.length === 0) return;
+    if (confirm(`Are you sure you want to verify and bulk approve all ${pendingCerts.length} pending certificate requests?`)) {
+      setSubmitting(true);
+      for (const cert of pendingCerts) {
+        await approveCertificate(cert.id, 'Bulk approved by Faculty Coordinator');
+      }
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardBody className="flex items-center gap-4">
@@ -652,10 +702,10 @@ const FacultyDashboard: React.FC<FacultyDashProps> = ({
         </Card>
         <Card>
           <CardBody className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-accent"><Users className="h-5 w-5" /></div>
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-accent"><Award className="h-5 w-5" /></div>
             <div>
-              <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{requests.length}</div>
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Membership Actions</div>
+              <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{pendingCerts.length}</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending Certificates</div>
             </div>
           </CardBody>
         </Card>
@@ -664,6 +714,46 @@ const FacultyDashboard: React.FC<FacultyDashProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Side: Pending approvals details */}
         <div className="lg:col-span-2 space-y-6">
+          
+          {/* Certificate Approvals Queue */}
+          <Card>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Certificate Verifications Queue</h3>
+              {pendingCerts.length > 0 && (
+                <Button variant="primary" size="sm" onClick={handleBulkApprove} isLoading={submitting} className="text-xs">
+                  Bulk Approve
+                </Button>
+              )}
+            </CardHeader>
+            <CardBody className="p-0">
+              {pendingCerts.length === 0 ? (
+                <div className="text-center py-10 text-xs text-slate-400">No student certificate submissions to verify.</div>
+              ) : (
+                <Table
+                  columns={[
+                    { header: 'Title', accessor: 'event' },
+                    { header: 'Category', accessor: 'category' },
+                    { header: 'Student', accessor: (row) => row.approvedBy || 'Student' },
+                    { header: 'AP Value', accessor: (row) => `+${row.activityPoints || 50}` },
+                    {
+                      header: 'Action',
+                      accessor: (row) => (
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => { setReviewCert(row); setRemarks(''); }} className="text-xs">
+                            Review
+                          </Button>
+                        </div>
+                      )
+                    }
+                  ]}
+                  data={pendingCerts}
+                  keyExtractor={(row) => row.id}
+                />
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Event Proposals Queue */}
           <Card>
             <CardHeader>
               <h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Event Proposals Pending Approvals</h3>
@@ -732,6 +822,86 @@ const FacultyDashboard: React.FC<FacultyDashProps> = ({
           </Card>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {reviewCert && (
+        <Modal
+          isOpen={!!reviewCert}
+          onClose={() => setReviewCert(null)}
+          title="Review Extracurricular Certificate"
+          footer={
+            <>
+              <Button variant="outline" size="sm" onClick={() => setReviewCert(null)}>Close</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs" size="sm" isLoading={submitting} onClick={() => handleReject(reviewCert.id)}>
+                  Reject
+                </Button>
+                <Button variant="primary" size="sm" isLoading={submitting} onClick={() => handleApprove(reviewCert.id)}>
+                  Approve & Award {reviewCert.activityPoints || 50} AP
+                </Button>
+              </div>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {/* Inline Document Preview */}
+            <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50/20 dark:bg-slate-900/10 min-h-[200px] flex items-center justify-center">
+              {reviewCert.downloadUrl && reviewCert.downloadUrl !== '#' ? (
+                reviewCert.documentType?.includes('pdf') ? (
+                  <iframe 
+                    src={reviewCert.downloadUrl} 
+                    className="w-full h-72 border-none rounded-lg"
+                    title="Certificate Verification File"
+                  />
+                ) : (
+                  <img 
+                    src={reviewCert.downloadUrl} 
+                    alt="Certificate"
+                    className="max-h-72 object-contain rounded-lg mx-auto"
+                  />
+                )
+              ) : (
+                <div className="text-center p-6 text-slate-400">
+                  <Award className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs">No upload file context found.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Document Details Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-50 dark:border-slate-800/40 pt-3">
+              <div>
+                <span className="text-[9px] text-slate-400 font-bold block">TITLE</span>
+                <span className="font-semibold text-slate-850 dark:text-slate-200">{reviewCert.event}</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-400 font-bold block">CATEGORY</span>
+                <span className="font-semibold text-slate-850 dark:text-slate-200">{reviewCert.category}</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-400 font-bold block">ORGANIZATION</span>
+                <span className="font-semibold text-slate-850 dark:text-slate-200">{reviewCert.approvedBy || 'Self-Uploaded'}</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-400 font-bold block">ISSUE DATE</span>
+                <span className="font-semibold text-slate-850 dark:text-slate-200">{reviewCert.date}</span>
+              </div>
+            </div>
+
+            {/* Remarks Input */}
+            <div className="space-y-1.5 border-t border-slate-50 dark:border-slate-800/40 pt-3">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Review Remarks / Rejection Reason</label>
+              <textarea 
+                rows={2}
+                placeholder="Enter feedback comments (required if rejecting)..."
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                className="w-full text-xs p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-transparent text-slate-850 dark:text-slate-150 outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
@@ -745,14 +915,30 @@ interface AdminDashProps {
   requests: any[];
   handleRequest: any;
   setShowAnnounceModal: (show: boolean) => void;
+  certificates: Certificate[];
 }
 const AdminDashboard: React.FC<AdminDashProps> = ({
   totalClubs,
   pendingApprovals,
   requests,
   handleRequest,
-  setShowAnnounceModal
+  setShowAnnounceModal,
+  certificates = []
 }) => {
+  const totalUploaded = certificates.length;
+  const pending = certificates.filter(c => c.status === 'PENDING').length;
+  const approved = certificates.filter(c => c.status === 'APPROVED').length;
+  const rejected = certificates.filter(c => c.status === 'REJECTED').length;
+
+  const categoryCounts: Record<string, number> = {};
+  certificates.forEach(c => {
+    const cat = c.category || 'Other';
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+  const sortedCategories = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -779,8 +965,8 @@ const AdminDashboard: React.FC<AdminDashProps> = ({
           <CardBody className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-accent"><Award className="h-5 w-5" /></div>
             <div>
-              <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">12</div>
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Faculty Overseers</div>
+              <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{pending}</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-sans">Pending Verification</div>
             </div>
           </CardBody>
         </Card>
@@ -788,8 +974,8 @@ const AdminDashboard: React.FC<AdminDashProps> = ({
           <CardBody className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 text-rose-500"><TrendingUp className="h-5 w-5" /></div>
             <div>
-              <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">4,250</div>
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total interactions</div>
+              <div className="text-xl font-extrabold text-slate-900 dark:text-white font-display">{totalUploaded}</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-sans">Uploaded Vault Items</div>
             </div>
           </CardBody>
         </Card>
@@ -798,6 +984,51 @@ const AdminDashboard: React.FC<AdminDashProps> = ({
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          
+          {/* Certificate Analytics Panel */}
+          <Card>
+            <CardHeader><h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Credentials Vault Auditing & Analytics</h3></CardHeader>
+            <CardBody className="space-y-6">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="p-3.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                  <span className="text-xl font-bold text-emerald-500 font-mono">{approved}</span>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider mt-1">Approved</span>
+                </div>
+                <div className="p-3.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/40 animate-pulse">
+                  <span className="text-xl font-bold text-amber-500 font-mono">{pending}</span>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider mt-1">Pending Review</span>
+                </div>
+                <div className="p-3.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                  <span className="text-xl font-bold text-rose-500 font-mono">{rejected}</span>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider mt-1">Rejected</span>
+                </div>
+              </div>
+
+              {/* Category distribution */}
+              <div className="space-y-4 pt-2">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Top Activity Categories</h4>
+                {sortedCategories.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No category insights available.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {sortedCategories.map(([cat, count]) => {
+                      const percentage = Math.min(100, Math.round((count / Math.max(1, totalUploaded)) * 100));
+                      return (
+                        <div key={cat} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
+                            <span>{cat}</span>
+                            <span>{count} certs ({percentage}%)</span>
+                          </div>
+                          <ProgressBar value={percentage} max={100} color="primary" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+
           {/* Department Rankings */}
           <Card>
             <CardHeader><h3 className="text-sm font-bold font-display text-slate-900 dark:text-white">Department Club Growth Ranking</h3></CardHeader>

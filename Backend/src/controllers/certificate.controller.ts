@@ -1,23 +1,45 @@
 import { Request, Response, NextFunction } from 'express';
-import { CertificateService } from '../services/certificate.service';
-import { UnauthorizedError } from '../utils/errors';
+import { certificateService } from '../services/certificate.service';
+import { BadRequestError } from '../utils/errors';
 
-const certificateService = new CertificateService();
-
-export const issueCertificate = async (
+export const uploadCertificate = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
     if (!req.user) {
-      throw new UnauthorizedError('Unauthorized');
+      throw new BadRequestError('User authentication context not found.');
     }
-    const { userId, title, metadata } = req.body;
-    const certificate = await certificateService.issueCertificate(userId, title, req.user.id, metadata);
+    if (!req.file) {
+      throw new BadRequestError('Certificate file attachment is required.');
+    }
+
+    const { title, issuedBy, issueDate, category, description, skills, expiryDate, verificationUrl, certificateId } = req.body;
+
+    const metadata = {
+      title,
+      issuedBy,
+      issueDate,
+      category,
+      description,
+      skills: typeof skills === 'string' ? JSON.parse(skills) : skills,
+      expiryDate,
+      verificationUrl,
+      certificateId,
+    };
+
+    const fileData = {
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    };
+
+    const certificate = await certificateService.uploadCertificate(req.user.id, metadata, fileData);
+
     res.status(201).json({
       status: 'success',
-      message: 'Certificate issued successfully',
+      message: 'Certificate uploaded successfully',
       data: { certificate },
     });
   } catch (error) {
@@ -25,33 +47,144 @@ export const issueCertificate = async (
   }
 };
 
-export const verifyCertificate = async (
+export const getCertificates = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { uniqueId } = req.params;
-    const verification = await certificateService.verifyCertificate(uniqueId);
+    if (!req.user) {
+      throw new BadRequestError('User authentication context not found.');
+    }
+
+    const certificates = await certificateService.getCertificates(req.user.id, req.user.role);
+
     res.status(200).json({
       status: 'success',
-      data: { verification },
+      data: { certificates },
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const getHistory = async (
+export const getCertificateById = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const history = await certificateService.getHistory(req.params.userId);
+    if (!req.user) {
+      throw new BadRequestError('User authentication context not found.');
+    }
+
+    const certificate = await certificateService.getCertificateById(req.params.id, req.user.id, req.user.role);
+
     res.status(200).json({
       status: 'success',
-      data: { history },
+      data: { certificate },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateCertificate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new BadRequestError('User authentication context not found.');
+    }
+
+    const certificate = await certificateService.updateCertificate(
+      req.params.id,
+      req.user.id,
+      req.user.role,
+      req.body
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Certificate updated successfully',
+      data: { certificate },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCertificate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new BadRequestError('User authentication context not found.');
+    }
+
+    await certificateService.deleteCertificate(req.params.id, req.user.id, req.user.role);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Certificate deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const approveCertificate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new BadRequestError('User authentication context not found.');
+    }
+
+    const { remarks } = req.body;
+    const certificate = await certificateService.approveCertificate(
+      req.params.id,
+      req.user.email,
+      remarks
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Certificate approved successfully',
+      data: { certificate },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const rejectCertificate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new BadRequestError('User authentication context not found.');
+    }
+
+    const { remarks } = req.body;
+    const certificate = await certificateService.rejectCertificate(
+      req.params.id,
+      req.user.email,
+      remarks
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Certificate rejected successfully',
+      data: { certificate },
     });
   } catch (error) {
     next(error);
