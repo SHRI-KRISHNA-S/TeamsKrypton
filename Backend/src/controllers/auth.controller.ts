@@ -88,76 +88,51 @@ export const login = async (
       throw new UnauthorizedError('Invalid credentials');
     }
 
-    // Generate Access token
+    // Generate Access & Refresh tokens
     const accessToken = generateAccessToken({ id: user.id, email: user.email, role: user.role });
+    const refreshTokenString = generateRefreshToken(user.id);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-    // Handle concurrent duplicate logins gracefully (e.g. React StrictMode double rendering)
-    const recentToken = await prisma.refreshToken.findFirst({
-      where: {
-        userId: user.id,
-        revoked: false,
-        createdAt: {
-          gte: new Date(Date.now() - 5000), // created in the last 5 seconds
+    const userAgent = req.headers['user-agent'] || null;
+    const ipAddress = req.ip || null;
+    const deviceId = req.body.deviceId || (req.headers['x-device-id'] as string) || null;
+
+    // Persist refresh token and audit logging inside a transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.refreshToken.create({
+        data: {
+          token: refreshTokenString,
+          userId: user.id,
+          expiresAt,
+          deviceId,
+          userAgent,
+          ipAddress,
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    let refreshTokenString: string;
-    let expiresAt: Date;
-
-    if (recentToken) {
-      refreshTokenString = recentToken.token;
-      expiresAt = recentToken.expiresAt;
-      logger.info(`Reusing recently generated refresh token for user ${user.id} due to concurrent requests`);
-    } else {
-      // Keep up to 4 previous active sessions, revoke any older ones to support multiple browser sessions
-      const activeTokens = await prisma.refreshToken.findMany({
-        where: { userId: user.id, revoked: false },
-        orderBy: { createdAt: 'desc' },
       });
 
-      if (activeTokens.length >= 4) {
-        const tokensToRevoke = activeTokens.slice(4);
-        await prisma.refreshToken.updateMany({
-          where: { id: { in: tokensToRevoke.map(t => t.id) } },
-          data: { revoked: true },
-        });
-        logger.info(`Revoked ${tokensToRevoke.length} old refresh tokens for user ${user.id} to maintain safety limits`);
-      }
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'USER_LOGIN',
+          details: `Successful login session initialized. Device ID: ${deviceId || 'N/A'}. User-Agent: ${userAgent || 'N/A'}.`,
+          ipAddress,
+        },
+      });
 
-      refreshTokenString = generateRefreshToken(user.id);
-      expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-
-      try {
-        await prisma.refreshToken.create({
-          data: {
-            token: refreshTokenString,
-            userId: user.id,
-            expiresAt,
-          },
-        });
-        logger.info(`Successfully created new refresh token for user ${user.id}`);
-      } catch (dbError: any) {
-        // Safe fallback in case of database transaction race conditions
-        if (dbError.code === 'P2002') {
-          const duplicateToken = await prisma.refreshToken.findFirst({
-            where: { userId: user.id, revoked: false },
-            orderBy: { createdAt: 'desc' },
-          });
-          if (duplicateToken) {
-            refreshTokenString = duplicateToken.token;
-            expiresAt = duplicateToken.expiresAt;
-            logger.warn(`Recovered from database unique constraint race condition for user ${user.id}`);
-          } else {
-            throw dbError;
-          }
-        } else {
-          throw dbError;
+      // Sweep/clean expired/revoked refresh tokens to prevent table size bloat
+      await tx.refreshToken.deleteMany({
+        where: {
+          userId: user.id,
+          OR: [
+            { expiresAt: { lt: new Date() } },
+            { revoked: true }
+          ]
         }
-      }
-    }
+      });
+    });
+
+    logger.info(`Session created and tokens generated successfully for user: ${user.id}`);
 
     // Set HTTP-only Cookie for Refresh Token
     res.cookie('refreshToken', refreshTokenString, {
@@ -206,15 +181,21 @@ export const refresh = async (
       include: { user: true },
     });
 
+    const userAgent = req.headers['user-agent'] || null;
+    const ipAddress = req.ip || null;
+    const deviceId = req.body.deviceId || (req.headers['x-device-id'] as string) || null;
+
     if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+      await prisma.auditLog.create({
+        data: {
+          userId: storedToken ? storedToken.userId : null,
+          action: 'TOKEN_REFRESH_FAILED',
+          details: `Attempted token refresh failed. Token details: ID: ${storedToken?.id || 'N/A'}. Expired: ${storedToken ? storedToken.expiresAt < new Date() : 'N/A'}.`,
+          ipAddress,
+        },
+      });
       throw new UnauthorizedError('Invalid or expired refresh token');
     }
-
-    // Token Rotation: Revoke current refresh token
-    await prisma.refreshToken.update({
-      where: { id: storedToken.id },
-      data: { revoked: true },
-    });
 
     // Generate new tokens
     const newAccessToken = generateAccessToken({ 
@@ -222,38 +203,49 @@ export const refresh = async (
       email: storedToken.user.email, 
       role: storedToken.user.role 
     });
-    let newRefreshTokenString = generateRefreshToken(storedToken.user.id);
-
-    // Save new Refresh token
-    let expiresAt = new Date();
+    const newRefreshTokenString = generateRefreshToken(storedToken.user.id);
+    const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    try {
-      await prisma.refreshToken.create({
+    // Refresh Token Rotation inside a single transaction
+    await prisma.$transaction(async (tx) => {
+      // Revoke only the token being refreshed
+      await tx.refreshToken.update({
+        where: { id: storedToken.id },
+        data: { revoked: true },
+      });
+
+      // Save new Refresh token inheriting previous session info if new info is not provided
+      await tx.refreshToken.create({
         data: {
           token: newRefreshTokenString,
           userId: storedToken.user.id,
           expiresAt,
+          deviceId: deviceId || storedToken.deviceId,
+          userAgent: userAgent || storedToken.userAgent,
+          ipAddress: ipAddress || storedToken.ipAddress,
         },
       });
-      logger.info(`Successfully created rotated refresh token for user ${storedToken.user.id}`);
-    } catch (dbError: any) {
-      if (dbError.code === 'P2002') {
-        const duplicateToken = await prisma.refreshToken.findFirst({
-          where: { userId: storedToken.user.id, revoked: false },
-          orderBy: { createdAt: 'desc' },
-        });
-        if (duplicateToken) {
-          newRefreshTokenString = duplicateToken.token;
-          expiresAt = duplicateToken.expiresAt;
-          logger.warn(`Recovered from refresh unique constraint race condition for user ${storedToken.user.id}`);
-        } else {
-          throw dbError;
-        }
-      } else {
-        throw dbError;
-      }
-    }
+
+      await tx.auditLog.create({
+        data: {
+          userId: storedToken.user.id,
+          action: 'TOKEN_REFRESH',
+          details: `Refresh token rotated successfully. Old token ID: ${storedToken.id} revoked.`,
+          ipAddress,
+        },
+      });
+
+      // Clean expired refresh tokens for this user
+      await tx.refreshToken.deleteMany({
+        where: {
+          userId: storedToken.user.id,
+          expiresAt: { lt: new Date() },
+        },
+      });
+    });
+
+    logger.info(`Refresh token rotated successfully for user ${storedToken.user.id}`);
 
     // Set cookie
     res.cookie('refreshToken', newRefreshTokenString, {
@@ -282,18 +274,34 @@ export const logout = async (
 ): Promise<void> => {
   try {
     const refreshTokenString = req.cookies?.refreshToken || req.body?.refreshToken;
+    const ipAddress = req.ip || null;
 
     if (refreshTokenString) {
-      // Invalidate in DB
-      await prisma.refreshToken.updateMany({
+      const storedToken = await prisma.refreshToken.findUnique({
         where: { token: refreshTokenString },
-        data: { revoked: true },
       });
+
+      if (storedToken) {
+        await prisma.$transaction(async (tx) => {
+          await tx.refreshToken.update({
+            where: { id: storedToken.id },
+            data: { revoked: true },
+          });
+
+          await tx.auditLog.create({
+            data: {
+              userId: storedToken.userId,
+              action: 'USER_LOGOUT',
+              details: `User logged out session successfully. Revoked Token ID: ${storedToken.id}.`,
+              ipAddress,
+            },
+          });
+        });
+        logger.info(`User ${storedToken.userId} logged out successfully`);
+      }
     }
 
-    // Clear Cookie
     res.clearCookie('refreshToken');
-
     res.status(200).json({
       status: 'success',
       message: 'Logged out successfully',
